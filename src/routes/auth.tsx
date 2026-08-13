@@ -184,6 +184,13 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={google}>
             Continue with Google
           </Button>
+          <Button variant="secondary" className="mt-3 w-full" disabled={loading} onClick={enterDemo}>
+            Explore the seeded demo workspace
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Opens the demo account — switch between employee, manager, HR and executive views inside.
+          </p>
+
         </div>
       </div>
     </div>
