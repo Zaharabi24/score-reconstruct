@@ -255,7 +255,10 @@ export async function listPersonas() {
 /** Everything the signed-in persona is allowed to see, read server-side in one round trip. */
 export async function loadWorkspace(actor: EmployeeRow) {
   const [employeesRes, departmentsRes, rubricsRes, policyRes] = await Promise.all([
-    supabaseAdmin.from("employees").select("id,name,email,role,department_id,manager_id,is_demo").order("name"),
+    supabaseAdmin
+      .from("employees")
+      .select("id,name,email,role,department_id,manager_id,designation,is_demo")
+      .order("name"),
     supabaseAdmin.from("departments").select("id,name,parent_department_id").order("name"),
     supabaseAdmin.from("rubrics").select("*").order("created_at"),
     supabaseAdmin.from("scoring_policy").select("*"),
