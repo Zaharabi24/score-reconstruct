@@ -110,6 +110,7 @@ function Dashboard() {
       avgAchievement: avg(achievements),
       approvalsPending,
       adjusted,
+      belowTarget: achievements.filter((a) => a < 100).length,
       totalKpis: currentKpis.length,
       adjustedRate: scored ? Math.round((adjusted / scored) * 100) : 0,
       evidence: submitted ? Math.round((withEvidence / submitted) * 100) : 0,
@@ -290,34 +291,25 @@ function Dashboard() {
             The six numbers that tell you how this quarter is going.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Stat
-            label="People evaluated"
-            value={`${glance.evaluated} of ${glance.people}`}
-            hint={`${glance.stillPending} still being evaluated`}
-          />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Evaluated / pending" value={`${glance.evaluated} / ${glance.people}`} />
           <Stat label="Average score" value={`${glance.avgScore} / 120`} hint="From approved scores only" />
+          <Stat label="Avg. target achievement" value={`${glance.avgAchievement}%`} />
+          <Stat label="Approvals pending" value={String(glance.approvalsPending)} />
           <Stat
-            label="Average achievement"
-            value={`${glance.avgAchievement}%`}
-            hint="How close actuals came to target, on average"
+            label="Best department"
+            value={best ? `${best.name} (${best.achievement})` : "—"}
+            textValue
           />
           <Stat
-            label="Waiting on approval"
-            value={String(glance.approvalsPending)}
-            hint="Targets & submitted results combined"
+            label="Weakest department"
+            value={watch ? `${watch.name} (${watch.achievement})` : "—"}
+            textValue
           />
-          <Stat
-            label="Manually adjusted"
-            value={`${glance.adjusted} of ${glance.totalKpis} (${glance.adjustedRate}%)`}
-            hint="Scores changed by a reviewer, with a reason on file"
-          />
-          <Stat
-            label="Evidence attached"
-            value={`${glance.evidence}%`}
-            hint="Of submitted results have supporting evidence"
-          />
+          <Stat label="KPIs below target" value={String(glance.belowTarget)} />
+          <Stat label="Manually adjusted" value={String(glance.adjusted)} />
         </div>
+
       </section>
 
       {/* ZONE B */}
@@ -619,11 +611,21 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+  textValue,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  textValue?: boolean;
+}) {
   return (
     <div className="panel p-5">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="num mt-2 text-3xl">{value}</p>
+      <p className={textValue ? "mt-2 font-display text-lg font-semibold" : "num mt-2 text-3xl"}>{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
