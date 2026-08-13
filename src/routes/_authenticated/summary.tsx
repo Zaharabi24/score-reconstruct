@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
-import { latestScore, useAuditLog, useKpis, useRealtimeKpis } from "@/lib/queries";
+import { latestActual, latestScore, useAuditLog, useKpis, useRealtimeKpis, type KpiRow } from "@/lib/queries";
 import { weightedRollUp } from "@/lib/scoring";
 import { getReportPayload } from "@/lib/kpi.functions";
 import { buildKpiReport } from "@/lib/report";
@@ -23,6 +24,11 @@ export const Route = createFileRoute("/_authenticated/summary")({
   component: Summary,
 });
 
+function periodLabel(iso: string) {
+  const d = new Date(iso);
+  return `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${d.getUTCFullYear()}`;
+}
+
 function Summary() {
   const { data: me } = useMe();
   useRealtimeKpis();
@@ -30,14 +36,45 @@ function Summary() {
   const { data: audit } = useAuditLog();
   const reportFn = useServerFn(getReportPayload);
 
-  const rows = (kpis ?? []).map((kpi) => {
-    const score = latestScore(kpi);
-    return { kpi, score, final: score?.final_score ?? null };
-  });
-  const approved = rows.filter((r) => r.final !== null);
-  const overall = weightedRollUp(
-    approved.map((r) => ({ weight_percent: Number(r.kpi.weight_percent), final_score: Number(r.final) })),
-  );
+  const periods = useMemo(() => {
+    const set = [...new Set((kpis ?? []).map((k) => k.period_start))].sort();
+    return { current: set[set.length - 1] ?? null, previous: set.length > 1 ? set[set.length - 2] : null };
+  }, [kpis]);
+
+  const build = (list: KpiRow[]) =>
+    list.map((kpi) => {
+      const score = latestScore(kpi);
+      const actual = latestActual(kpi);
+      return {
+        kpi,
+        final: score?.final_score ?? null,
+        achievement: score?.achievement_percent ?? null,
+        actual: actual?.actual_value ?? null,
+        rubricLevel: actual?.rubric_level ?? null,
+      };
+    });
+
+  const currentRows = build((kpis ?? []).filter((k) => !periods.current || k.period_start === periods.current));
+  const previousRows = build((kpis ?? []).filter((k) => periods.previous && k.period_start === periods.previous));
+
+  const rollUp = (list: ReturnType<typeof build>) =>
+    weightedRollUp(
+      list
+        .filter((r) => r.final !== null)
+        .map((r) => ({ weight_percent: Number(r.kpi.weight_percent), final_score: Number(r.final) })),
+    );
+
+  const overall = rollUp(currentRows);
+  const previousOverall = rollUp(previousRows);
+  const delta = overall !== null && previousOverall !== null ? overall - previousOverall : null;
+  const approved = currentRows.filter((r) => r.final !== null);
+
+  const avgAchievement = useMemo(() => {
+    const list = currentRows.filter((r) => r.achievement !== null).map((r) => Number(r.achievement));
+    return list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null;
+  }, [currentRows]);
+
+  const prevByName = new Map(previousRows.map((r) => [r.kpi.name, r]));
 
   const download = async () => {
     try {
@@ -54,7 +91,8 @@ function Summary() {
         <div>
           <h1 className="text-2xl">Performance summary</h1>
           <p className="text-sm text-muted-foreground">
-            Weighted roll-up of approved scores only — pending KPIs are excluded until approval.
+            {periods.current ? `${periodLabel(periods.current)} · ` : ""}weighted roll-up of approved scores only — pending
+            KPIs are excluded until approval.
           </p>
         </div>
         <Button variant="outline" onClick={download}>
@@ -62,43 +100,81 @@ function Summary() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Overall weighted score" value={overall === null ? "—" : overall.toFixed(1)} />
-        <Stat label="Approved KPIs" value={`${approved.length}/${rows.length}`} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Total KPI score" value={overall === null ? "—" : overall.toFixed(1)} hint="Weighted across approved KPIs" />
+        <Stat label="Average achievement" value={avgAchievement === null ? "—" : `${avgAchievement}%`} hint="Actual vs target" />
         <Stat
-          label="Weight approved"
-          value={`${approved.reduce((sum, r) => sum + Number(r.kpi.weight_percent), 0)}%`}
+          label="Previous period"
+          value={previousOverall === null ? "—" : previousOverall.toFixed(1)}
+          hint={
+            delta === null
+              ? periods.previous
+                ? `${periodLabel(periods.previous)} — not comparable yet`
+                : "No earlier period on record"
+              : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} vs ${periodLabel(periods.previous!)}`
+          }
+        />
+        <Stat
+          label="Approved KPIs"
+          value={`${approved.length}/${currentRows.length}`}
+          hint={`${approved.reduce((sum, r) => sum + Number(r.kpi.weight_percent), 0)}% of weight approved`}
         />
       </div>
 
-      <div className="panel overflow-hidden">
+      <div className="panel overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-alt text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-5 py-2 font-medium">KPI</th>
               <th className="px-5 py-2 font-medium">Status</th>
+              <th className="px-5 py-2 text-right font-medium">Target</th>
+              <th className="px-5 py-2 text-right font-medium">Actual</th>
+              <th className="px-5 py-2 text-right font-medium">Achievement</th>
               <th className="px-5 py-2 text-right font-medium">Weight</th>
               <th className="px-5 py-2 text-right font-medium">Score</th>
               <th className="px-5 py-2 text-right font-medium">Contribution</th>
+              <th className="px-5 py-2 text-right font-medium">vs previous</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ kpi, final }) => (
-              <tr key={kpi.id} className="border-t border-border">
-                <td className="px-5 py-2">{kpi.name}</td>
-                <td className="px-5 py-2">
-                  <StatusBadge status={kpi.status} />
-                </td>
-                <td className="num px-5 py-2 text-right">{kpi.weight_percent}%</td>
-                <td className="num px-5 py-2 text-right">{final ?? "—"}</td>
-                <td className="num px-5 py-2 text-right">
-                  {final === null ? "—" : ((Number(final) * Number(kpi.weight_percent)) / 100).toFixed(1)}
-                </td>
-              </tr>
-            ))}
-            {!rows.length && (
+            {currentRows.map((row) => {
+              const { kpi, final, achievement, actual, rubricLevel } = row;
+              const prev = prevByName.get(kpi.name);
+              const diff =
+                final !== null && prev?.final !== null && prev?.final !== undefined
+                  ? Number(final) - Number(prev.final)
+                  : null;
+              return (
+                <tr key={kpi.id} className="border-t border-border">
+                  <td className="px-5 py-2">{kpi.name}</td>
+                  <td className="px-5 py-2">
+                    <StatusBadge status={kpi.status} />
+                  </td>
+                  <td className="num px-5 py-2 text-right">
+                    {kpi.target_value === null ? "Rubric" : `${kpi.target_value}${kpi.unit ? ` ${kpi.unit}` : ""}`}
+                  </td>
+                  <td className="num px-5 py-2 text-right">
+                    {actual !== null
+                      ? `${actual}${kpi.unit ? ` ${kpi.unit}` : ""}`
+                      : rubricLevel !== null
+                        ? `Level ${rubricLevel}`
+                        : "—"}
+                  </td>
+                  <td className="num px-5 py-2 text-right">{achievement === null ? "—" : `${Number(achievement).toFixed(0)}%`}</td>
+                  <td className="num px-5 py-2 text-right">{kpi.weight_percent}%</td>
+                  <td className="num px-5 py-2 text-right">{final ?? "—"}</td>
+                  <td className="num px-5 py-2 text-right">
+                    {final === null ? "—" : ((Number(final) * Number(kpi.weight_percent)) / 100).toFixed(1)}
+                  </td>
+                  <td className="num px-5 py-2 text-right">
+                    {diff === null ? "—" : `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}`}
+                  </td>
+                </tr>
+              );
+            })}
+            {!currentRows.length && (
               <tr>
-                <td colSpan={5} className="px-5 py-6 text-sm text-muted-foreground">
+                <td colSpan={9} className="px-5 py-6 text-sm text-muted-foreground">
                   No KPIs yet.
                 </td>
               </tr>
@@ -112,11 +188,13 @@ function Summary() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="panel p-5">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="num mt-2 text-3xl">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
+
