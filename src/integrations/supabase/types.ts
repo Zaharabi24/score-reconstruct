@@ -481,10 +481,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_see_kpi: { Args: { _kpi_id: string }; Returns: boolean }
-      manages: { Args: { _employee_id: string }; Returns: boolean }
-      my_department: { Args: never; Returns: string }
-      my_role: { Args: never; Returns: string }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
