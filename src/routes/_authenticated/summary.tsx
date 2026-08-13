@@ -101,6 +101,8 @@ function Summary() {
         </Button>
       </div>
 
+      <EmployeeTabs />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Total KPI score" value={overall === null ? "—" : overall.toFixed(1)} hint="Weighted across approved KPIs" />
         <Stat label="Average achievement" value={avgAchievement === null ? "—" : `${avgAchievement}%`} hint="Actual vs target" />
