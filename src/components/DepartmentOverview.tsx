@@ -14,14 +14,66 @@ import {
 import type { EmployeeLite, KpiRow } from "@/lib/queries";
 
 const SCORED_STATUSES = ["approved", "submitted", "correction_requested"];
-const PENDING_STATUS_META: { key: string; label: string; className: string }[] = [
-  { key: "active", label: "awaiting actual", className: "bg-muted-foreground/50" },
-  { key: "submitted", label: "pending your review", className: "bg-attention" },
-  { key: "correction_requested", label: "pending final approval", className: "bg-exceptional" },
-  { key: "returned", label: "returned", className: "bg-destructive" },
-  { key: "pending_target_approval", label: "target pending", className: "bg-primary/60" },
-  { key: "draft", label: "in draft", className: "bg-border" },
+const PENDING_STATUS_META: {
+  key: string;
+  label: string;
+  className: string;
+  dotClassName: string;
+  tintClassName: string;
+  hint: string;
+  needsAction?: boolean;
+}[] = [
+  {
+    key: "active",
+    label: "awaiting actual",
+    className: "bg-muted-foreground/50",
+    dotClassName: "bg-muted-foreground/50",
+    tintClassName: "hover:bg-muted focus-visible:bg-muted",
+    hint: "Employee hasn't submitted a result yet",
+  },
+  {
+    key: "submitted",
+    label: "pending your review",
+    className: "bg-attention",
+    dotClassName: "bg-attention",
+    tintClassName: "hover:bg-attention/10 focus-visible:bg-attention/10",
+    hint: "Submitted with evidence, waiting on your decision",
+    needsAction: true,
+  },
+  {
+    key: "correction_requested",
+    label: "pending final approval",
+    className: "bg-exceptional",
+    dotClassName: "bg-exceptional",
+    tintClassName: "hover:bg-exceptional/10 focus-visible:bg-exceptional/10",
+    hint: "Adjusted score awaiting your final sign-off",
+  },
+  {
+    key: "returned",
+    label: "returned",
+    className: "bg-destructive",
+    dotClassName: "bg-destructive",
+    tintClassName: "hover:bg-destructive/10 focus-visible:bg-destructive/10",
+    hint: "Sent back for clarification, waiting on employee",
+  },
+  {
+    key: "pending_target_approval",
+    label: "target pending",
+    className: "bg-primary/60",
+    dotClassName: "bg-primary/60",
+    tintClassName: "hover:bg-primary/10 focus-visible:bg-primary/10",
+    hint: "Target needs your approval before tracking starts",
+  },
+  {
+    key: "draft",
+    label: "in draft",
+    className: "bg-border",
+    dotClassName: "bg-border",
+    tintClassName: "hover:bg-muted focus-visible:bg-muted",
+    hint: "Not yet issued to the employee",
+  },
 ];
+
 
 /** Process/admin KPIs are excluded from people-performance lists. */
 function isPeopleKpi(kpi: KpiRow, teamIds: Set<string>) {
