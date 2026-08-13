@@ -110,6 +110,7 @@ function Dashboard() {
       avgAchievement: avg(achievements),
       approvalsPending,
       adjusted,
+      belowTarget: achievements.filter((a) => a < 100).length,
       totalKpis: currentKpis.length,
       adjustedRate: scored ? Math.round((adjusted / scored) * 100) : 0,
       evidence: submitted ? Math.round((withEvidence / submitted) * 100) : 0,
@@ -610,11 +611,21 @@ function Dashboard() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+  textValue,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  textValue?: boolean;
+}) {
   return (
     <div className="panel p-5">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="num mt-2 text-3xl">{value}</p>
+      <p className={textValue ? "mt-2 font-display text-lg font-semibold" : "num mt-2 text-3xl"}>{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
