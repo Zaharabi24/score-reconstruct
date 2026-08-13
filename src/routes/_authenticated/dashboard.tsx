@@ -244,6 +244,48 @@ function Dashboard() {
         <Stat label="Evidence coverage" value={`${integrity.evidenceCoverage}%`} hint={`${integrity.total} KPIs tracked`} />
       </div>
 
+      <div className="panel overflow-x-auto">
+        <div className="px-5 pt-5">
+          <h3 className="text-sm font-semibold">Department view</h3>
+          <p className="text-xs text-muted-foreground">
+            Average achievement, high and low performers, pending evaluations and KPIs below target.
+          </p>
+        </div>
+        <table className="mt-4 w-full text-sm">
+          <thead className="bg-surface-alt text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-5 py-2 font-medium">Department</th>
+              <th className="px-5 py-2 text-right font-medium">Avg achievement</th>
+              <th className="px-5 py-2 font-medium">High performer</th>
+              <th className="px-5 py-2 font-medium">Low performer</th>
+              <th className="px-5 py-2 text-right font-medium">Pending evaluations</th>
+              <th className="px-5 py-2 text-right font-medium">KPIs below target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deptDetail.map((d) => (
+              <tr key={d.id} className="border-t border-border">
+                <td className="px-5 py-2">{d.name}</td>
+                <td className="num px-5 py-2 text-right">{d.avgAchievement === null ? "—" : `${d.avgAchievement}%`}</td>
+                <td className="px-5 py-2">
+                  {d.high ? `${d.high.name} · ${d.high.score.toFixed(1)}` : "—"}
+                </td>
+                <td className="px-5 py-2">{d.low ? `${d.low.name} · ${d.low.score.toFixed(1)}` : "—"}</td>
+                <td className="num px-5 py-2 text-right">{d.pending}</td>
+                <td className="num px-5 py-2 text-right">{d.belowTarget}</td>
+              </tr>
+            ))}
+            {!deptDetail.length && (
+              <tr>
+                <td colSpan={6} className="px-5 py-6 text-sm text-muted-foreground">
+                  No departments recorded yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="panel p-5">
