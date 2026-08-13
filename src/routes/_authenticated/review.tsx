@@ -168,7 +168,7 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
                   run(
                     () =>
                       approveTargetFn({
-                        data: { kpi_definition_id: kpi.id, decision: "return", reason: returnReason },
+                        data: { kpi_definition_id: kpi.id, approve: false, rejection_reason: returnReason },
                       }),
                     "Returned to HR for revision",
                   )
