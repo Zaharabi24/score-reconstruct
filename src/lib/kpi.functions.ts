@@ -446,12 +446,15 @@ export const getEvidenceLink = createServerFn({ method: "POST" })
       .select("id,file_url")
       .eq("id", data.evidence_id)
       .maybeSingle();
-    if (!allowed) throw new Error("Evidence not found or not visible to you");
+    if (!allowed) return { url: null, reason: "Evidence not found or not visible to you" };
     const { data: signed, error } = await supabaseAdmin.storage
       .from("evidence")
       .createSignedUrl(allowed.file_url, 300);
-    if (error) throw new Error(error.message);
-    return { url: signed.signedUrl };
+    if (error || !signed?.signedUrl) {
+      // Demo/seeded evidence rows reference files that were never uploaded.
+      return { url: null, reason: "This evidence file is not available (demo record has no stored file)." };
+    }
+    return { url: signed.signedUrl, reason: null };
   });
 
 export const getReportPayload = createServerFn({ method: "POST" })
