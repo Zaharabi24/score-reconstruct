@@ -151,7 +151,7 @@ export function DepartmentOverview({
       <div className="grid gap-4 lg:grid-cols-2">
         <AverageAchievement average={average} delta={delta} hasPrior={priorAverage !== null} />
         <Performers top={top} bottom={bottom} />
-        <PendingEvaluations total={pending.length} segments={pendingCounts} />
+        <PendingEvaluations total={pending.length} segments={pendingCounts} onFilterStatus={onFilterStatus} />
         <BelowTarget rows={belowTarget} previousPeriodKpis={previousPeriodKpis} />
       </div>
     </section>
