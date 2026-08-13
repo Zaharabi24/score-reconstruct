@@ -78,7 +78,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={loading} onClick={enterAsGuest}>
+            <Button size="sm" disabled={loading} onClick={enterAsGuest}>
               Guest Login
             </Button>
             <Button asChild size="sm">
