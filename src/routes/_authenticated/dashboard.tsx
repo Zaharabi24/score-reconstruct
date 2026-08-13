@@ -113,7 +113,7 @@ function Dashboard() {
     const avg = (list: number[]) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : 0);
     return {
       evaluated: evaluatedEmployees.size,
-      pending: [...pendingEmployees].filter((id) => !evaluatedEmployees.has(id)).length + pendingEmployees.size * 0,
+      awaitingEmployees: [...pendingEmployees].filter((id) => !evaluatedEmployees.has(id)).length,
       pendingKpis: rows.length - finals.length,
       approvalsPending,
       adjusted,
