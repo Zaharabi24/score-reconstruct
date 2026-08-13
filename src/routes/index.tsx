@@ -40,12 +40,19 @@ function Landing() {
   const [loading, setLoading] = useState(false);
 
   // Warm the workspace cache so the first authenticated screen paints instantly.
+  // The read is auth-only, so skip it entirely until a session exists.
   const prefetchWorkspace = () => {
-    void queryClient.prefetchQuery({
-      queryKey: ["workspace", getPersonaId()],
-      queryFn: async () => (await getWorkspace()) as unknown,
-      staleTime: 5 * 60_000,
-    });
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      await queryClient
+        .prefetchQuery({
+          queryKey: ["workspace", getPersonaId()],
+          queryFn: async () => (await getWorkspace()) as unknown,
+          staleTime: 5 * 60_000,
+        })
+        .catch(() => undefined);
+    })();
   };
 
   // Guest access: start the shared demo session and land on the Employee KPI screen.
