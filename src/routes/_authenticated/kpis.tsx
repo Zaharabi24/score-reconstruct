@@ -53,42 +53,44 @@ function MyKpis() {
               key={kpi.id}
               to="/kpi/$id"
               params={{ id: kpi.id }}
-              className="panel block p-5 transition-shadow hover:shadow-md"
+              className="panel flex h-full flex-col p-5 transition-shadow hover:shadow-md"
             >
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-base font-semibold">{kpi.name}</h2>
-                <StatusBadge status={kpi.status} />
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-base font-semibold">{kpi.name}</h2>
+                  <StatusBadge status={kpi.status} />
+                </div>
+                <p className="mt-1 text-xs capitalize text-muted-foreground">
+                  {kpi.perspective} · weight <span className="num">{kpi.weight_percent}%</span>
+                </p>
+
+                <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Target</dt>
+                    <dd className="num">{kpi.target_value ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Actual</dt>
+                    <dd className="num">{actual?.actual_value ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Score</dt>
+                    <dd className="num">{score?.final_score ?? score?.calculated_score ?? "—"}</dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4">
+                  <WorkflowStepper status={kpi.status} />
+                </div>
+
+                <p className="mt-4 text-xs text-muted-foreground">
+                  {daysLeft >= 0 ? `${daysLeft} days remaining in period` : `Period closed ${-daysLeft} days ago`}
+                </p>
               </div>
-              <p className="mt-1 text-xs capitalize text-muted-foreground">
-                {kpi.perspective} · weight <span className="num">{kpi.weight_percent}%</span>
-              </p>
 
-              <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <dt className="text-xs text-muted-foreground">Target</dt>
-                  <dd className="num">{kpi.target_value ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Actual</dt>
-                  <dd className="num">{actual?.actual_value ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Score</dt>
-                  <dd className="num">{score?.final_score ?? score?.calculated_score ?? "—"}</dd>
-                </div>
-              </dl>
-
-              <div className="mt-4">
-                <WorkflowStepper status={kpi.status} />
-              </div>
-
-              <span className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+              <span className="mt-4 inline-flex items-center justify-start gap-1 self-start rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                 View Details <ChevronRight className="h-4 w-4" />
               </span>
-
-              <p className="mt-4 text-xs text-muted-foreground">
-                {daysLeft >= 0 ? `${daysLeft} days remaining in period` : `Period closed ${-daysLeft} days ago`}
-              </p>
             </Link>
           );
         })}
