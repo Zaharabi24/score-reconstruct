@@ -36,8 +36,26 @@ function Landing() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Guest access: start the shared demo session and land straight on the dashboard.
+  // Guest access: start the shared demo session and land on the Employee KPI screen.
   const enterAsGuest = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        const creds = await ensureDemoAccount();
+        const { error } = await supabase.auth.signInWithPassword(creds);
+        if (error) throw new Error(error.message);
+      }
+      await router.navigate({ to: "/kpis" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open the workspace");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hero CTA: opens the demo account and lands on the Management Dashboard.
+  const enterDashboard = async () => {
     setLoading(true);
     try {
       const { data } = await supabase.auth.getSession();
@@ -60,7 +78,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={loading} onClick={enterAsGuest}>
+            <Button size="sm" disabled={loading} onClick={enterAsGuest}>
               Guest Login
             </Button>
             <Button asChild size="sm">
@@ -81,7 +99,7 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button size="lg" disabled={loading} onClick={enterAsGuest}>
+          <Button size="lg" disabled={loading} onClick={enterDashboard}>
             Go to the Dashboard
           </Button>
         </div>
