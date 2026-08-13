@@ -38,12 +38,12 @@ const QUEUE_STATUSES = ["pending_target_approval", "submitted", "correction_requ
 export const Route = createFileRoute("/_authenticated/review")({
   head: () => ({
     meta: [
-      { title: "Department / Team Lead — Anwar KPIFlow" },
+      { title: "Department — Anwar KPIFlow" },
       {
         name: "description",
         content: "Department-scoped performance overview and the KPI submission requests waiting on your decision.",
       },
-      { property: "og:title", content: "Department / Team Lead — Anwar KPIFlow" },
+      { property: "og:title", content: "Department — Anwar KPIFlow" },
       { property: "og:description", content: "Department overview plus the KPI submission request queue." },
     ],
   }),
@@ -94,7 +94,7 @@ function DepartmentWorkspace() {
   return (
     <div className="space-y-10">
       <header className="space-y-1">
-        <h1 className="text-[28px] font-bold leading-tight">Department / Team Lead</h1>
+        <h1 className="text-[28px] font-bold leading-tight">Department</h1>
         <p className="text-sm text-muted-foreground">
           Everything here is scoped to {departmentName}. Decisions are bounded by policy and written to the audit log.
         </p>

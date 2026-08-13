@@ -38,7 +38,7 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
 /** One flat, always-visible menu: each item owns a screen and the role it is viewed as. */
 const MENU: { to: ScreenPath; label: string; role: string }[] = [
   { to: "/kpis", label: "Employee KPI", role: "employee" },
-  { to: "/review", label: "Department / Team Lead", role: "manager" },
+  { to: "/review", label: "Department", role: "manager" },
   { to: "/admin", label: "HR/Admin", role: "hr_admin" },
   { to: "/dashboard", label: "Management Dashboard", role: "hr_admin" },
 ];
