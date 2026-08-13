@@ -213,7 +213,7 @@ export async function assertWeightBudget(employeeId: string, weight: number, per
    ──────────────────────────────────────────────────────────────── */
 
 export const KPI_SELECT =
-  "*, employees:employee_id(id,name,email,department_id), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
+  "*, employees:employee_id(id,name,email,department_id,designation), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
 
 /**
  * The acting employee for a request. In demo mode an authenticated presenter can
@@ -255,7 +255,10 @@ export async function listPersonas() {
 /** Everything the signed-in persona is allowed to see, read server-side in one round trip. */
 export async function loadWorkspace(actor: EmployeeRow) {
   const [employeesRes, departmentsRes, rubricsRes, policyRes] = await Promise.all([
-    supabaseAdmin.from("employees").select("id,name,email,role,department_id,manager_id,is_demo").order("name"),
+    supabaseAdmin
+      .from("employees")
+      .select("id,name,email,role,department_id,manager_id,designation,is_demo")
+      .order("name"),
     supabaseAdmin.from("departments").select("id,name,parent_department_id").order("name"),
     supabaseAdmin.from("rubrics").select("*").order("created_at"),
     supabaseAdmin.from("scoring_policy").select("*"),
@@ -263,7 +266,15 @@ export async function loadWorkspace(actor: EmployeeRow) {
 
   const employees = employeesRes.data ?? [];
   const orgWide = ["hr_admin", "executive"].includes(actor.role);
-  const teamIds = employees.filter((e) => e.manager_id === actor.id).map((e) => e.id);
+  // Department scoping is enforced at the data layer: a team lead sees their direct
+  // reports plus everyone in their own department — never another department.
+  const teamIds = employees
+    .filter(
+      (e) =>
+        e.manager_id === actor.id ||
+        (actor.role === "manager" && actor.department_id !== null && e.department_id === actor.department_id),
+    )
+    .map((e) => e.id);
 
   let kpiQuery = supabaseAdmin.from("kpi_definitions").select(KPI_SELECT).order("created_at", { ascending: false });
   if (!orgWide) {
