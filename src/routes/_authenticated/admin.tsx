@@ -50,8 +50,8 @@ function Admin() {
   const doExport = async () => {
     setBusy(true);
     try {
-      const { csv } = await exportFn({ data: { dataset: "scores" } });
-      const blob = new Blob([csv], { type: "text/csv" });
+      const { content, mime } = await exportFn({ data: { format: "csv" } });
+      const blob = new Blob([content], { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -68,8 +68,8 @@ function Admin() {
   const doSync = async () => {
     setBusy(true);
     try {
-      const res = await syncFn({ data: {} });
-      toast.success(`ERP sync complete — ${res.updated} KPI(s) received system-verified actuals`);
+      const res = await syncFn();
+      toast.success(`ERP sync complete — ${res.synced} KPI(s) received system-verified actuals`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
     } finally {
@@ -132,11 +132,14 @@ function Admin() {
           <div className="panel p-5">
             <h3 className="text-sm font-semibold">Scoring policy</h3>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-              <Item label="Score cap" value={String(policy?.["max_score"] ?? "—")} />
-              <Item label="Zero threshold" value={`${policy?.["zero_threshold_percent"] ?? "—"}%`} />
-              <Item label="Max adjustment" value={`±${policy?.["max_adjustment_points"] ?? "—"} pts`} />
-              <Item label="Min weight" value={`${policy?.["min_weight_percent"] ?? "—"}%`} />
-              <Item label="Max weight" value={`${policy?.["max_weight_percent"] ?? "—"}%`} />
+              <Item label="Score cap" value={String(policy?.achievement_cap ?? "—")} />
+              <Item label="Zero threshold" value={`${policy?.achievement_floor ?? "—"}%`} />
+              <Item
+                label="Adjustment escalation"
+                value={`±${policy?.adjustment_escalation_threshold ?? "—"} pts`}
+              />
+              <Item label="Min weight" value="5%" />
+              <Item label="Max weight" value="40%" />
               <Item label="Weight budget" value="100% per employee per period" />
             </dl>
           </div>
