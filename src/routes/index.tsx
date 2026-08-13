@@ -59,9 +59,14 @@ function Landing() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
-          <Button asChild size="sm">
-            <Link to="/auth">Sign in</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={loading} onClick={enterAsGuest}>
+              Guest Login
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
