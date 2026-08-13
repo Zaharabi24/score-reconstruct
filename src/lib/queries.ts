@@ -111,7 +111,9 @@ export function useWorkspace() {
   return useQuery({
     queryKey: ["workspace", personaId],
     queryFn: async () => (await getWorkspace()) as unknown as Workspace,
-    staleTime: 15_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });
 }

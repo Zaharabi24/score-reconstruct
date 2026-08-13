@@ -17,8 +17,8 @@ export function useMe() {
 
 export const ROLE_LABEL: Record<string, string> = {
   employee: "Employee",
-  manager: "Manager / Reviewer",
-  hr_admin: "HR Admin",
+  manager: "Manager/Team Lead",
+  hr_admin: "HR/Admin",
   executive: "Executive",
 };
 

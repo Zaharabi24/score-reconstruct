@@ -1,5 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { ShieldCheck, Workflow, FileSearch, LineChart } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureDemoAccount } from "@/lib/workspace.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -29,14 +33,40 @@ const PILLARS = [
 ];
 
 function Landing() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  // Guest access: start the shared demo session and land straight on the dashboard.
+  const enterAsGuest = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        const creds = await ensureDemoAccount();
+        const { error } = await supabase.auth.signInWithPassword(creds);
+        if (error) throw new Error(error.message);
+      }
+      await router.navigate({ to: "/dashboard" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
-          <Button asChild size="sm">
-            <Link to="/auth">Sign in</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={loading} onClick={enterAsGuest}>
+              Guest Login
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -51,8 +81,8 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button asChild size="lg">
-            <Link to="/auth">Open the workspace</Link>
+          <Button size="lg" disabled={loading} onClick={enterAsGuest}>
+            Go to the Dashboard
           </Button>
         </div>
 
