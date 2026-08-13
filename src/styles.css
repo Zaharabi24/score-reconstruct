@@ -130,5 +130,41 @@
 @utility panel {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 4%), 0 4px 12px -6px oklch(0 0 0 / 8%);
 }
+
+@utility field-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@utility stat-block {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background-color: var(--color-surface-alt);
+  padding: 0.75rem 0.875rem;
+}
+
+@utility quote-callout {
+  border-left: 3px solid var(--color-primary);
+  background-color: color-mix(in oklab, var(--color-primary) 7%, transparent);
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1rem;
+  font-style: italic;
+}
+
+@utility card-hover {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px -8px oklch(0 0 0 / 22%);
+  }
+}
+
