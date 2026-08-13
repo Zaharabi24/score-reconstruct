@@ -464,6 +464,7 @@ function Dashboard() {
             <ul className="divide-y divide-border">
               {(showAllGaps ? peopleProgress : peopleProgress.slice(0, 6)).map((person) => {
                 const color = person.percent < 70 ? BRICK : person.percent < 90 ? AMBER : TEAL;
+                const displayPercent = Math.min(person.percent, 100);
                 return (
                   <li key={person.id} className="py-3 first:pt-0 last:pb-0">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -476,21 +477,21 @@ function Dashboard() {
                           {person.achievedPoints} / {person.totalPoints} pts
                         </span>
                         <span className="num text-sm font-semibold" style={{ color }}>
-                          {person.percent}%
+                          {displayPercent}%
                         </span>
                       </div>
                     </div>
                     <div
                       className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-secondary"
                       role="progressbar"
-                      aria-valuenow={person.percent}
+                      aria-valuenow={displayPercent}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-label={`${person.name} KPI achievement`}
                     >
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${Math.min(person.percent, 100)}%`, background: color }}
+                        style={{ width: `${displayPercent}%`, background: color }}
                       />
                     </div>
                     <p className="mt-1.5 text-xs text-muted-foreground">
