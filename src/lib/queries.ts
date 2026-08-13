@@ -8,6 +8,8 @@ export const KPI_SELECT =
 export type KpiRow = Record<string, unknown> & {
   id: string;
   name: string;
+  description: string | null;
+  rubric_id: string | null;
   status: string;
   kpi_type: string;
   perspective: string;
