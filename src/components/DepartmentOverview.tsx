@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import {
   ACHIEVEMENT_MAX,
@@ -279,7 +279,7 @@ function PendingEvaluations({
 }: {
   total: number;
   segments: PendingSegment[];
-  onFilterStatus?: (status: string) => void;
+  onFilterStatus?: ((status: string) => void) | undefined;
 }) {
   const pctOf = (count: number) => (total ? (count / total) * 100 : 0);
   const narrow = segments.filter((s) => pctOf(s.count) < 12 && s.count > 0);
@@ -293,7 +293,7 @@ function PendingEvaluations({
       {/* labels for segments too narrow to hold a number inside the bar */}
       {narrow.length > 0 && (
         <div className="relative mt-4 h-5 w-full">
-          {segments.reduce<{ acc: number; nodes: React.ReactNode[] }>(
+          {segments.reduce<{ acc: number; nodes: ReactNode[] }>(
             (state, s) => {
               const w = pctOf(s.count);
               if (w > 0 && w < 12) {
