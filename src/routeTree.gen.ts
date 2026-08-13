@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedKpisRouteImport } from './routes/_authenticated/kpis'
+import { Route as AuthenticatedKpiIdRouteImport } from './routes/_authenticated/kpi.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,23 @@ const AuthenticatedKpisRoute = AuthenticatedKpisRouteImport.update({
   path: '/kpis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKpiIdRoute = AuthenticatedKpiIdRouteImport.update({
+  id: '/kpi/$id',
+  path: '/kpi/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kpis': typeof AuthenticatedKpisRoute
+  '/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kpis': typeof AuthenticatedKpisRoute
+  '/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/kpis': typeof AuthenticatedKpisRoute
+  '/_authenticated/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/kpis'
+  fullPaths: '/' | '/auth' | '/kpis' | '/kpi/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/kpis'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/kpis'
+  to: '/' | '/auth' | '/kpis' | '/kpi/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/kpis'
+    | '/_authenticated/kpi/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +110,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKpisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kpi/$id': {
+      id: '/_authenticated/kpi/$id'
+      path: '/kpi/$id'
+      fullPath: '/kpi/$id'
+      preLoaderRoute: typeof AuthenticatedKpiIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedKpisRoute: typeof AuthenticatedKpisRoute
+  AuthenticatedKpiIdRoute: typeof AuthenticatedKpiIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKpisRoute: AuthenticatedKpisRoute,
+  AuthenticatedKpiIdRoute: AuthenticatedKpiIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
