@@ -163,6 +163,59 @@ function Dashboard() {
       .sort((a, b) => a.label.slice(3).localeCompare(b.label.slice(3)) || a.label.localeCompare(b.label));
   }, [kpis]);
 
+  const deptDetail = useMemo(() => {
+    const empDept = new Map((employees ?? []).map((e) => [e.id, e.department_id]));
+    const empName = new Map((employees ?? []).map((e) => [e.id, e.name]));
+    type Agg = {
+      id: string;
+      name: string;
+      achievements: number[];
+      pending: number;
+      belowTarget: number;
+      byEmployee: Map<string, { weight_percent: number; final_score: number }[]>;
+    };
+    const map = new Map<string, Agg>();
+    for (const d of departments ?? []) {
+      map.set(d.id, { id: d.id, name: d.name, achievements: [], pending: 0, belowTarget: 0, byEmployee: new Map() });
+    }
+    for (const kpi of kpis ?? []) {
+      const deptId = empDept.get(kpi.employee_id) ?? kpi.department_id;
+      const agg = deptId ? map.get(deptId) : undefined;
+      if (!agg) continue;
+      const score = latestScore(kpi);
+      const achievement = score?.achievement_percent;
+      if (achievement !== null && achievement !== undefined) {
+        agg.achievements.push(Number(achievement));
+        if (Number(achievement) < 100) agg.belowTarget += 1;
+      }
+      if (score?.final_score === null || score?.final_score === undefined) {
+        agg.pending += 1;
+      } else {
+        const list = agg.byEmployee.get(kpi.employee_id) ?? [];
+        list.push({ weight_percent: Number(kpi.weight_percent), final_score: Number(score.final_score) });
+        agg.byEmployee.set(kpi.employee_id, list);
+      }
+    }
+    return [...map.values()].map((agg) => {
+      const people = [...agg.byEmployee.entries()]
+        .map(([id, rows]) => ({ name: empName.get(id) ?? "—", score: weightedRollUp(rows) ?? 0 }))
+        .sort((a, b) => b.score - a.score);
+      return {
+        id: agg.id,
+        name: agg.name,
+        avgAchievement: agg.achievements.length
+          ? Math.round((agg.achievements.reduce((a, b) => a + b, 0) / agg.achievements.length) * 10) / 10
+          : null,
+        pending: agg.pending,
+        belowTarget: agg.belowTarget,
+        high: people[0] ?? null,
+        low: people.length > 1 ? people[people.length - 1] : null,
+      };
+    });
+  }, [kpis, employees, departments]);
+
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -189,6 +242,48 @@ function Dashboard() {
         <Stat label="Needs attention" value={ranked.bottom?.name ?? "—"} hint={ranked.bottom ? `${ranked.bottom.score} weighted score` : "No approved scores yet"} />
         <Stat label="Scores manually adjusted" value={String(management.adjusted)} hint={`${integrity.adjustmentRate}% of scored KPIs`} />
         <Stat label="Evidence coverage" value={`${integrity.evidenceCoverage}%`} hint={`${integrity.total} KPIs tracked`} />
+      </div>
+
+      <div className="panel overflow-x-auto">
+        <div className="px-5 pt-5">
+          <h3 className="text-sm font-semibold">Department view</h3>
+          <p className="text-xs text-muted-foreground">
+            Average achievement, high and low performers, pending evaluations and KPIs below target.
+          </p>
+        </div>
+        <table className="mt-4 w-full text-sm">
+          <thead className="bg-surface-alt text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-5 py-2 font-medium">Department</th>
+              <th className="px-5 py-2 text-right font-medium">Avg achievement</th>
+              <th className="px-5 py-2 font-medium">High performer</th>
+              <th className="px-5 py-2 font-medium">Low performer</th>
+              <th className="px-5 py-2 text-right font-medium">Pending evaluations</th>
+              <th className="px-5 py-2 text-right font-medium">KPIs below target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deptDetail.map((d) => (
+              <tr key={d.id} className="border-t border-border">
+                <td className="px-5 py-2">{d.name}</td>
+                <td className="num px-5 py-2 text-right">{d.avgAchievement === null ? "—" : `${d.avgAchievement}%`}</td>
+                <td className="px-5 py-2">
+                  {d.high ? `${d.high.name} · ${d.high.score.toFixed(1)}` : "—"}
+                </td>
+                <td className="px-5 py-2">{d.low ? `${d.low.name} · ${d.low.score.toFixed(1)}` : "—"}</td>
+                <td className="num px-5 py-2 text-right">{d.pending}</td>
+                <td className="num px-5 py-2 text-right">{d.belowTarget}</td>
+              </tr>
+            ))}
+            {!deptDetail.length && (
+              <tr>
+                <td colSpan={6} className="px-5 py-6 text-sm text-muted-foreground">
+                  No departments recorded yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
 
