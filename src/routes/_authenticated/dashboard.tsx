@@ -322,11 +322,11 @@ function Dashboard() {
       buildDashboardReport({
         periodLabel: periodText,
         glance,
-        best,
-        watch,
-        departments: deptRows,
+        best: best ? { name: best.name, achievement: best.achievement } : null,
+        watch: watch ? { name: watch.name, achievement: watch.achievement } : null,
+        departments: deptRows.map((d) => ({ ...d, low: d.low ?? null })),
         people: peopleProgress,
-        trend: trend.rows.map((r) => ({ label: String(r.label), score: Number(r.score) })),
+        trend: trend.rows.map((r) => ({ label: String(r['label']), score: Number(r['score']) })),
         adjusters,
       }).save(`management-dashboard-${periodText.replace(/\s+/g, "-").toLowerCase()}.pdf`);
       toast.success("Report downloaded");
