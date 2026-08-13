@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorkspace } from "@/lib/workspace.functions";
 import { useDemoPersonaId } from "@/lib/demo";
@@ -112,6 +112,7 @@ export function useWorkspace() {
     queryKey: ["workspace", personaId],
     queryFn: async () => (await getWorkspace()) as unknown as Workspace,
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 }
 
