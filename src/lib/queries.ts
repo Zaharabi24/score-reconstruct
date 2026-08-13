@@ -24,7 +24,7 @@ export type KpiRow = Record<string, unknown> & {
   milestones: unknown;
   score_records: ScoreRow[];
   actual_entries: ActualRow[];
-  employees: { id: string; name: string } | null;
+  employees: { id: string; name: string; department_id?: string | null; designation?: string | null } | null;
   reviewer: { id: string; name: string } | null;
   approver: { id: string; name: string } | null;
 };
@@ -68,6 +68,7 @@ export type EmployeeLite = {
   role: string;
   department_id: string | null;
   manager_id: string | null;
+  designation?: string | null;
   is_demo?: boolean;
 };
 
