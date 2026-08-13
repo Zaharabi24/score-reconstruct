@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useKpis, useRealtimeKpis, type KpiRow } from "@/lib/queries";
 import { approveTarget, reviewDecision } from "@/lib/kpi.functions";
@@ -53,9 +53,9 @@ function ReviewConsole() {
   const selected = queue.find((k) => k.id === selectedId) ?? queue[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-1">
-        <h1 className="text-[28px] font-bold leading-tight">Review console</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl">Review console</h1>
         <p className="text-sm text-muted-foreground">
           Adjustments are bounded, require a reason code and justification, and are written to the audit log.
         </p>
@@ -67,40 +67,25 @@ function ReviewConsole() {
       )}
 
       {!!queue.length && (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
-          <div className="flex flex-col gap-3 self-start">
-            <h2 className="field-label">Pending queue ({queue.length})</h2>
-            {queue.map((kpi) => {
-              const isSelected = selected?.id === kpi.id;
-              return (
-                <div
-                  key={kpi.id}
-                  className={`panel card-hover border-l-4 p-5 ${
-                    isSelected ? "border-l-primary bg-surface-alt" : "border-l-transparent"
-                  }`}
-                >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold">{kpi.name}</p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {kpi.employees?.name} · weight <span className="num">{kpi.weight_percent}%</span>
-                      </p>
-                    </div>
-                    <StatusBadge status={kpi.status} />
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      size="sm"
-                      className="rounded-lg font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
-                      onClick={() => setSelectedId(kpi.id)}
-                      aria-pressed={isSelected}
-                    >
-                      View Details
-                    </Button>
-                  </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
+          <div className="panel divide-y divide-border overflow-hidden">
+            {queue.map((kpi) => (
+              <button
+                key={kpi.id}
+                onClick={() => setSelectedId(kpi.id)}
+                className={`block w-full px-4 py-3 text-left transition-colors hover:bg-surface-alt ${
+                  selected?.id === kpi.id ? "bg-surface-alt" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{kpi.name}</span>
+                  <StatusBadge status={kpi.status} />
                 </div>
-              );
-            })}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {kpi.employees?.name} · weight <span className="num">{kpi.weight_percent}%</span>
+                </p>
+              </button>
+            ))}
           </div>
 
           {selected && <ReviewPanel key={selected.id} kpi={selected} />}
@@ -109,7 +94,6 @@ function ReviewConsole() {
     </div>
   );
 }
-
 
 function ReviewPanel({ kpi }: { kpi: KpiRow }) {
   const queryClient = useQueryClient();
@@ -200,53 +184,47 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="panel p-6">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-bold">{kpi.name}</h3>
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{kpi.employees?.name}</p>
+    <div className="space-y-4">
+      <div className="panel p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">{kpi.name}</h3>
+            <p className="text-xs text-muted-foreground">{kpi.employees?.name}</p>
           </div>
-          <Link
-            to="/kpi/$id"
-            params={{ id: kpi.id }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            Open full record <ExternalLink className="h-3.5 w-3.5" />
+          <Link to="/kpi/$id" params={{ id: kpi.id }} className="text-xs underline">
+            Open full record
           </Link>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="stat-block">
-            <p className="field-label">Target</p>
-            <p className="num mt-1 text-[15px] font-medium">{kpi.target_value ?? "—"}</p>
+        <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground">Target</dt>
+            <dd className="num">{kpi.target_value ?? "—"}</dd>
           </div>
-          <div className="stat-block">
-            <p className="field-label">Actual</p>
-            <p className="num mt-1 text-[15px] font-medium">{actual?.actual_value ?? actual?.rubric_level ?? "—"}</p>
+          <div>
+            <dt className="text-xs text-muted-foreground">Actual</dt>
+            <dd className="num">{actual?.actual_value ?? actual?.rubric_level ?? "—"}</dd>
           </div>
-          <div className="stat-block">
-            <p className="field-label">Evidence</p>
-            <p className="num mt-1 text-[15px] font-medium">{(actual?.evidence ?? []).length} file(s)</p>
+          <div>
+            <dt className="text-xs text-muted-foreground">Evidence</dt>
+            <dd className="num">{(actual?.evidence ?? []).length} file(s)</dd>
           </div>
-        </div>
-        {actual?.comments && <p className="quote-callout mt-5 text-sm">“{actual.comments}”</p>}
+        </dl>
+        {actual?.comments && <p className="mt-3 text-sm text-muted-foreground">“{actual.comments}”</p>}
       </div>
 
       <CalculationPanel kpi={kpi} score={score} />
 
-      <div className="panel space-y-5 p-6">
-        <h3 className="text-base font-bold">Decision</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="panel space-y-4 p-5">
+        <h3 className="text-sm font-semibold">Decision</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="delta" className="field-label">
-              Adjustment (points)
-            </Label>
-            <Input id="delta" type="number" className="num h-10" value={delta} onChange={(e) => setDelta(e.target.value)} />
+            <Label htmlFor="delta">Adjustment (points)</Label>
+            <Input id="delta" type="number" value={delta} onChange={(e) => setDelta(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="field-label">Reason code</Label>
+            <Label>Reason code</Label>
             <Select value={reasonCode} onValueChange={setReasonCode}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -260,15 +238,12 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="just" className="field-label">
-            Justification
-          </Label>
+          <Label htmlFor="just">Justification</Label>
           <Textarea id="just" rows={3} value={justification} onChange={(e) => setJustification(e.target.value)} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
           <Button
-            className="h-10 rounded-lg font-semibold"
             disabled={busy}
             onClick={() =>
               run(
@@ -277,11 +252,10 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
               )
             }
           >
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve calculated
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve as calculated
           </Button>
           <Button
-            variant="outline"
-            className="h-10 rounded-lg border-primary text-primary hover:bg-primary/10 hover:text-primary"
+            variant="secondary"
             disabled={busy || Number(delta) === 0 || justification.trim().length < 10}
             onClick={() =>
               run(
@@ -302,8 +276,7 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
             Apply adjustment
           </Button>
           <Button
-            variant="ghost"
-            className="h-10 rounded-lg text-muted-foreground"
+            variant="outline"
             disabled={busy || justification.trim().length < 5}
             onClick={() =>
               run(
@@ -325,4 +298,3 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
     </div>
   );
 }
-
