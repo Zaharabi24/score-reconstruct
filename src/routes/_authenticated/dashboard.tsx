@@ -14,8 +14,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { latestScore, useDepartments, useEmployees, useKpis, useRealtimeKpis } from "@/lib/queries";
 import { weightedRollUp } from "@/lib/scoring";
+import { buildDashboardReport } from "@/lib/report";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -307,13 +311,42 @@ function Dashboard() {
 
   const deptPalette = [TEAL, AMBER, BRICK, NEUTRAL, "var(--color-ink-soft, #52666A)"];
 
+  const periodText = currentPeriod ? quarterLabel(currentPeriod) : "Current period";
+
+  const downloadReport = () => {
+    try {
+      if (!currentKpis.length) {
+        toast.error("No data available to export yet");
+        return;
+      }
+      buildDashboardReport({
+        periodLabel: periodText,
+        glance,
+        best: best ? { name: best.name, achievement: best.achievement } : null,
+        watch: watch ? { name: watch.name, achievement: watch.achievement } : null,
+        departments: deptRows.map((d) => ({ ...d, low: d.low ?? null })),
+        people: peopleProgress,
+        trend: trend.rows.map((r) => ({ label: String(r['label']), score: Number(r['score']) })),
+        adjusters,
+      }).save(`management-dashboard-${periodText.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      toast.success("Report downloaded");
+    } catch {
+      toast.error("Could not generate the report");
+    }
+  };
+
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl">Management dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Everything here is read live from approved records — nothing is estimated or hard-coded.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl">Management dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Everything here is read live from approved records — nothing is estimated or hard-coded.
+          </p>
+        </div>
+        <Button variant="outline" onClick={downloadReport}>
+          <Download className="mr-1 h-4 w-4" /> Download report
+        </Button>
       </div>
 
       {/* ZONE A */}
