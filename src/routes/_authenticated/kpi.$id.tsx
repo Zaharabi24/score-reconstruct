@@ -100,7 +100,11 @@ function KpiDetail() {
 
   const downloadEvidence = async (evidenceId: string) => {
     try {
-      const { url } = await evidenceLink({ data: { evidence_id: evidenceId } });
+      const { url, reason } = await evidenceLink({ data: { evidence_id: evidenceId } });
+      if (!url) {
+        toast.error(reason ?? "Could not create a download link");
+        return;
+      }
       window.open(url, "_blank", "noopener");
     } catch {
       toast.error("Could not create a download link");
