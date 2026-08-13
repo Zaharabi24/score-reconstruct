@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Activity, LogOut, RotateCcw, Loader2 } from "lucide-react";
@@ -35,7 +35,13 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
   ],
 };
 
-const ROLE_ORDER = ["employee", "manager", "hr_admin"] as const;
+/** One flat, always-visible menu: each item owns a screen and the role it is viewed as. */
+const MENU: { to: ScreenPath; label: string; role: string }[] = [
+  { to: "/kpis", label: "Employee KPI", role: "employee" },
+  { to: "/review", label: "Manager/Team Lead", role: "manager" },
+  { to: "/admin", label: "HR/Admin", role: "hr_admin" },
+  { to: "/dashboard", label: "Management Dashboard", role: "hr_admin" },
+];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: me } = useMe();
@@ -44,26 +50,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [resetting, setResetting] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const personas = workspace?.personas ?? [];
 
-  // First load of a demo session lands on the seeded employee so no screen is empty.
+  // First load of a demo session picks the persona that matches the screen being opened.
   useEffect(() => {
     if (personaId || !personas.length) return;
-    const seeded = personas.find((p) => p.role === "employee") ?? personas[0]!;
+    const wanted = MENU.find((m) => pathname.startsWith(m.to))?.role ?? "employee";
+    const seeded = personas.find((p) => p.role === wanted) ?? personas[0]!;
     setPersonaId(seeded.id);
-  }, [personaId, personas]);
-  // The employee screens are now tabs inside the Employee section, not sidebar links.
-  const EMPLOYEE_TABS: ScreenPath[] = ["/kpis", "/summary"];
-  const screens = (ROLE_SCREENS[me?.role ?? "employee"] ?? ROLE_SCREENS["employee"]!).filter(
-    (s) => !EMPLOYEE_TABS.includes(s.to),
-  );
+  }, [personaId, personas, pathname]);
 
-  const viewAs = async (persona: EmployeeLite) => {
-    setPersonaId(persona.id);
-    await queryClient.invalidateQueries();
-    const first = (ROLE_SCREENS[persona.role] ?? [])[0];
-    if (first) await router.navigate({ to: first.to });
+  const go = async (item: (typeof MENU)[number]) => {
+    const persona = personas.find((p: EmployeeLite) => p.role === item.role);
+    if (persona && persona.id !== personaId) {
+      setPersonaId(persona.id);
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    }
+    await router.navigate({ to: item.to });
   };
 
   const reset = async () => {
@@ -96,41 +101,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <div>
-          <p className="px-1 text-[11px] uppercase tracking-[0.14em] opacity-60">View as</p>
-          <div className="mt-2 grid gap-1">
-            {ROLE_ORDER.map((role) => {
-              const persona = personas.find((p) => p.role === role);
-              if (!persona) return null;
-              const active = personaId ? personaId === persona.id : me?.id === persona.id;
+          <p className="px-1 text-[11px] uppercase tracking-[0.14em] opacity-60">Menu</p>
+          <nav className="mt-2 grid gap-1">
+            {MENU.map((item) => {
+              const active =
+                item.to === "/kpis"
+                  ? pathname.startsWith("/kpis") || pathname.startsWith("/summary") || pathname.startsWith("/kpi/")
+                  : pathname.startsWith(item.to);
               return (
                 <button
-                  key={role}
-                  onClick={() => viewAs(persona)}
-                  className={`flex items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                    active ? "bg-primary font-medium" : "opacity-75 hover:bg-primary/40 hover:opacity-100"
+                  key={item.to}
+                  onClick={() => go(item)}
+                  aria-current={active ? "page" : undefined}
+                  className={`rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                    active ? "bg-primary font-medium opacity-100" : "opacity-75 hover:bg-primary/40 hover:opacity-100"
                   }`}
                 >
-                  <span>{ROLE_LABEL[role]}</span>
-                  <span className="text-[11px] opacity-70">{persona.name.split(" ")[0]}</span>
+                  {item.label}
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        <div className={screens.length ? "" : "hidden"}>
-          <p className="px-1 text-[11px] uppercase tracking-[0.14em] opacity-60">Screens</p>
-          <nav className="mt-2 grid gap-1">
-            {screens.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="rounded-md px-3 py-2 text-sm opacity-75 transition-colors hover:bg-primary/40 hover:opacity-100"
-                activeProps={{ className: "rounded-md px-3 py-2 text-sm bg-primary/70 font-medium opacity-100" }}
-              >
-                {item.label}
-              </Link>
-            ))}
           </nav>
         </div>
 
