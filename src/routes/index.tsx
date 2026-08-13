@@ -29,6 +29,27 @@ const PILLARS = [
 ];
 
 function Landing() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  // Guest access: start the shared demo session and land straight on the dashboard.
+  const enterAsGuest = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        const creds = await ensureDemoAccount();
+        const { error } = await supabase.auth.signInWithPassword(creds);
+        if (error) throw new Error(error.message);
+      }
+      await router.navigate({ to: "/dashboard" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
