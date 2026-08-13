@@ -1,5 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { ShieldCheck, Workflow, FileSearch, LineChart } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureDemoAccount } from "@/lib/workspace.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
