@@ -35,7 +35,7 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
   ],
 };
 
-const ROLE_ORDER = ["employee", "manager", "hr_admin", "executive"] as const;
+const ROLE_ORDER = ["employee", "manager", "hr_admin"] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: me } = useMe();
