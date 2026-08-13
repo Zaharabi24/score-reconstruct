@@ -14,8 +14,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { latestScore, useDepartments, useEmployees, useKpis, useRealtimeKpis } from "@/lib/queries";
 import { weightedRollUp } from "@/lib/scoring";
+import { buildDashboardReport } from "@/lib/report";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
