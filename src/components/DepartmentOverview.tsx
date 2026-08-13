@@ -372,6 +372,13 @@ function PendingEvaluations({
 
 }
 
+const KPI_TYPE_META: Record<string, { Icon: typeof TrendingUp; label: string }> = {
+  higher_is_better: { Icon: TrendingUp, label: "Higher is better" },
+  lower_is_better: { Icon: TrendingDown, label: "Lower is better" },
+  milestone: { Icon: Flag, label: "Milestone" },
+  qualitative: { Icon: Star, label: "Qualitative" },
+};
+
 function BelowTarget({
   rows,
   previousPeriodKpis,
@@ -392,36 +399,73 @@ function BelowTarget({
     <div className="panel p-6">
       <p className="field-label">KPIs below target</p>
       {!rows.length && <p className="mt-3 text-sm text-muted-foreground">Every scored KPI is at or above 95%.</p>}
-      <ul className="mt-4 space-y-3">
-        {shown.map(({ kpi, pct }) => {
-          const band = bandOf(pct);
-          const consecutive = streak(kpi);
-          return (
-            <li key={kpi.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-medium">{kpi.name}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{kpi.employees?.name}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {consecutive >= 2 && (
-                  <span className={`rounded-full border px-2 py-0.5 text-[11px] ${BAND_TINT.below}`}>
-                    <span className="num">{consecutive}×</span>
-                  </span>
-                )}
-                <span className={`num text-[13px] ${BAND_TEXT[band]}`}>{fmtPct(pct)}</span>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      {rows.length > 0 && <p className="mt-1.5 text-[11px] text-muted-foreground">Sorted by severity</p>}
+      <TooltipProvider delayDuration={150}>
+        <ul className="mt-3 space-y-1">
+          {shown.map(({ kpi, pct }) => {
+            const band = bandOf(pct);
+            const consecutive = streak(kpi);
+            const type = KPI_TYPE_META[kpi.kpi_type] ?? KPI_TYPE_META["higher_is_better"]!;
+            const TypeIcon = type.Icon;
+            return (
+              <li key={kpi.id}>
+                <Link
+                  to="/kpi/$id"
+                  params={{ id: kpi.id }}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <TypeIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={type.label} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium">{kpi.name}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{kpi.employees?.name}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <span className="flex w-9 justify-end">
+                      {consecutive >= 2 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              tabIndex={0}
+                              onClick={(e) => e.preventDefault()}
+                              className={`rounded-full border px-2 py-0.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${BAND_TINT.below}`}
+                            >
+                              <span className="num">{consecutive}×</span>
+                              <span className="sr-only">
+                                Below target for {consecutive} consecutive periods
+                              </span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Below target for {consecutive} consecutive periods</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </span>
+                    <span
+                      className="hidden h-1.5 w-[60px] overflow-hidden rounded-full bg-surface-alt sm:block"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className={`block h-full rounded-full ${BAND_BG[band]}`}
+                        style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
+                      />
+                    </span>
+                    <span className={`num text-right text-[13px] ${BAND_TEXT[band]}`}>{fmtPct(pct)}</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </TooltipProvider>
       {rows.length > 4 && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-4 rounded-md text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-4 inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {expanded ? "Show fewer" : `View all (${rows.length})`}
+          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} />
         </button>
       )}
     </div>
   );
 }
+
