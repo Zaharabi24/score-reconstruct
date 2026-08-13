@@ -132,8 +132,8 @@ function Dashboard() {
                         i === 0
                           ? "var(--color-destructive)"
                           : i === 1
-                            ? "var(--color-warning)"
-                            : "var(--color-success)"
+                            ? "var(--color-attention)"
+                            : "var(--color-primary)"
                       }
                     />
                   ))}
