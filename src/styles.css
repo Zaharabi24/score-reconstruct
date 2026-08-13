@@ -65,6 +65,7 @@
   --destructive-foreground: oklch(0.99 0.005 60);
   --attention: oklch(0.6 0.11 65);
   --attention-foreground: oklch(0.99 0.005 60);
+  --exceptional: oklch(0.55 0.09 195);
   --surface-alt: oklch(0.951 0.008 155);
   --border: oklch(0.9 0.008 155);
   --input: oklch(0.9 0.008 155);
