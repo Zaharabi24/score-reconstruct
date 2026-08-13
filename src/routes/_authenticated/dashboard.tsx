@@ -163,6 +163,59 @@ function Dashboard() {
       .sort((a, b) => a.label.slice(3).localeCompare(b.label.slice(3)) || a.label.localeCompare(b.label));
   }, [kpis]);
 
+  const deptDetail = useMemo(() => {
+    const empDept = new Map((employees ?? []).map((e) => [e.id, e.department_id]));
+    const empName = new Map((employees ?? []).map((e) => [e.id, e.name]));
+    type Agg = {
+      id: string;
+      name: string;
+      achievements: number[];
+      pending: number;
+      belowTarget: number;
+      byEmployee: Map<string, { weight_percent: number; final_score: number }[]>;
+    };
+    const map = new Map<string, Agg>();
+    for (const d of departments ?? []) {
+      map.set(d.id, { id: d.id, name: d.name, achievements: [], pending: 0, belowTarget: 0, byEmployee: new Map() });
+    }
+    for (const kpi of kpis ?? []) {
+      const deptId = empDept.get(kpi.employee_id) ?? kpi.department_id;
+      const agg = deptId ? map.get(deptId) : undefined;
+      if (!agg) continue;
+      const score = latestScore(kpi);
+      const achievement = score?.achievement_percent;
+      if (achievement !== null && achievement !== undefined) {
+        agg.achievements.push(Number(achievement));
+        if (Number(achievement) < 100) agg.belowTarget += 1;
+      }
+      if (score?.final_score === null || score?.final_score === undefined) {
+        agg.pending += 1;
+      } else {
+        const list = agg.byEmployee.get(kpi.employee_id) ?? [];
+        list.push({ weight_percent: Number(kpi.weight_percent), final_score: Number(score.final_score) });
+        agg.byEmployee.set(kpi.employee_id, list);
+      }
+    }
+    return [...map.values()].map((agg) => {
+      const people = [...agg.byEmployee.entries()]
+        .map(([id, rows]) => ({ name: empName.get(id) ?? "—", score: weightedRollUp(rows) ?? 0 }))
+        .sort((a, b) => b.score - a.score);
+      return {
+        id: agg.id,
+        name: agg.name,
+        avgAchievement: agg.achievements.length
+          ? Math.round((agg.achievements.reduce((a, b) => a + b, 0) / agg.achievements.length) * 10) / 10
+          : null,
+        pending: agg.pending,
+        belowTarget: agg.belowTarget,
+        high: people[0] ?? null,
+        low: people.length > 1 ? people[people.length - 1] : null,
+      };
+    });
+  }, [kpis, employees, departments]);
+
+
+
   return (
     <div className="space-y-6">
       <div>
