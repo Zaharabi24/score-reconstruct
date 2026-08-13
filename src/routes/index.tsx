@@ -54,7 +54,7 @@ function Landing() {
     }
   };
 
-  // Hero CTA: opens the demo account and lands on the Management Dashboard.
+  // Hero CTA: opens the demo account and lands on the Employee KPI screen by default.
   const enterDashboard = async () => {
     setLoading(true);
     try {
@@ -64,7 +64,7 @@ function Landing() {
         const { error } = await supabase.auth.signInWithPassword(creds);
         if (error) throw new Error(error.message);
       }
-      await router.navigate({ to: "/dashboard" });
+      await router.navigate({ to: "/kpis" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
     } finally {
