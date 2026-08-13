@@ -19,9 +19,9 @@ import { weightedRollUp } from "@/lib/scoring";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Executive dashboard — Anwar KPIFlow" },
+      { title: "Management dashboard — Anwar KPIFlow" },
       { name: "description", content: "Department score distribution, adjustment rates and evidence coverage." },
-      { property: "og:title", content: "Executive dashboard — Anwar KPIFlow" },
+      { property: "og:title", content: "Management dashboard — Anwar KPIFlow" },
       { property: "og:description", content: "Organisation-wide performance and scoring integrity signals." },
     ],
   }),
@@ -219,7 +219,7 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl">Executive dashboard</h1>
+        <h1 className="text-2xl">Management dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Every figure is a live aggregation of approved score records — nothing here is estimated.
         </p>
