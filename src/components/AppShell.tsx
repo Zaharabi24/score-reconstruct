@@ -29,7 +29,7 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
     { to: "/dashboard", label: "Management dashboard" },
   ],
   executive: [
-    { to: "/dashboard", label: "Executive dashboard" },
+    { to: "/dashboard", label: "Management dashboard" },
     { to: "/review", label: "Review console" },
     { to: "/summary", label: "Performance summary" },
   ],
