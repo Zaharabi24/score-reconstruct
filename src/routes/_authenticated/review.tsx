@@ -53,9 +53,9 @@ function ReviewConsole() {
   const selected = queue.find((k) => k.id === selectedId) ?? queue[0] ?? null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl">Review console</h1>
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-[28px] font-bold leading-tight">Review console</h1>
         <p className="text-sm text-muted-foreground">
           Adjustments are bounded, require a reason code and justification, and are written to the audit log.
         </p>
@@ -67,25 +67,40 @@ function ReviewConsole() {
       )}
 
       {!!queue.length && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
-          <div className="panel divide-y divide-border overflow-hidden">
-            {queue.map((kpi) => (
-              <button
-                key={kpi.id}
-                onClick={() => setSelectedId(kpi.id)}
-                className={`block w-full px-4 py-3 text-left transition-colors hover:bg-surface-alt ${
-                  selected?.id === kpi.id ? "bg-surface-alt" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{kpi.name}</span>
-                  <StatusBadge status={kpi.status} />
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
+          <div className="flex flex-col gap-3 self-start">
+            <h2 className="field-label">Pending queue ({queue.length})</h2>
+            {queue.map((kpi) => {
+              const isSelected = selected?.id === kpi.id;
+              return (
+                <div
+                  key={kpi.id}
+                  className={`panel card-hover border-l-4 p-5 ${
+                    isSelected ? "border-l-primary bg-surface-alt" : "border-l-transparent"
+                  }`}
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold">{kpi.name}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {kpi.employees?.name} · weight <span className="num">{kpi.weight_percent}%</span>
+                      </p>
+                    </div>
+                    <StatusBadge status={kpi.status} />
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      size="sm"
+                      className="rounded-lg font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
+                      onClick={() => setSelectedId(kpi.id)}
+                      aria-pressed={isSelected}
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {kpi.employees?.name} · weight <span className="num">{kpi.weight_percent}%</span>
-                </p>
-              </button>
-            ))}
+              );
+            })}
           </div>
 
           {selected && <ReviewPanel key={selected.id} kpi={selected} />}
@@ -94,6 +109,7 @@ function ReviewConsole() {
     </div>
   );
 }
+
 
 function ReviewPanel({ kpi }: { kpi: KpiRow }) {
   const queryClient = useQueryClient();
