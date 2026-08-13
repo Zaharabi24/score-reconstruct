@@ -36,8 +36,26 @@ function Landing() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Guest access: start the shared demo session and land straight on the dashboard.
+  // Guest access: start the shared demo session and land on the Employee KPI screen.
   const enterAsGuest = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        const creds = await ensureDemoAccount();
+        const { error } = await supabase.auth.signInWithPassword(creds);
+        if (error) throw new Error(error.message);
+      }
+      await router.navigate({ to: "/kpis" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open the workspace");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hero CTA: opens the demo account and lands on the Management Dashboard.
+  const enterDashboard = async () => {
     setLoading(true);
     try {
       const { data } = await supabase.auth.getSession();
