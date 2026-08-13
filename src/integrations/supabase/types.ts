@@ -140,6 +140,7 @@ export type Database = {
         Row: {
           created_at: string
           department_id: string | null
+          designation: string | null
           email: string
           id: string
           is_demo: boolean
@@ -150,6 +151,7 @@ export type Database = {
         Insert: {
           created_at?: string
           department_id?: string | null
+          designation?: string | null
           email: string
           id: string
           is_demo?: boolean
@@ -160,6 +162,7 @@ export type Database = {
         Update: {
           created_at?: string
           department_id?: string | null
+          designation?: string | null
           email?: string
           id?: string
           is_demo?: boolean
@@ -482,7 +485,9 @@ export type Database = {
     }
     Functions: {
       reset_demo_data: { Args: never; Returns: undefined }
+      reset_demo_data_base: { Args: never; Returns: undefined }
       seed_demo_history: { Args: never; Returns: undefined }
+      seed_department_demo: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
