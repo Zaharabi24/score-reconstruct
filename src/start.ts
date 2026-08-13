@@ -2,6 +2,7 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { getPersonaId, PERSONA_HEADER } from "./lib/demo";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -25,7 +26,13 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Demo mode: tells the server which seeded persona the presenter is viewing as.
+const attachDemoPersona = createMiddleware({ type: "function" }).client(async ({ next }) => {
+  const personaId = getPersonaId();
+  return next(personaId ? { headers: { [PERSONA_HEADER]: personaId } } : {});
+});
+
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [attachSupabaseAuth, attachDemoPersona],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));

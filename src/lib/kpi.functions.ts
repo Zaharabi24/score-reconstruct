@@ -6,7 +6,8 @@ import {
   assertWeightBudget,
   base64ToBytes,
   deny,
-  getEmployee,
+  personaFromRequest,
+  resolveActor,
   getKpi,
   getPolicy,
   latestScore,
@@ -17,7 +18,7 @@ import {
 
 export const getMe = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => getEmployee(context.userId));
+  .handler(async ({ context }) => resolveActor(context.userId, personaFromRequest()));
 
 export const setupKpi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -46,7 +47,7 @@ export const setupKpi = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     if (actor.role !== "hr_admin") {
       await deny(actor, "setup-kpi", "Only HR admins can create KPI definitions");
     }
@@ -112,7 +113,7 @@ export const approveTarget = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     const kpi = await getKpi(data.kpi_definition_id);
 
     if (kpi.reviewer_id !== actor.id) {
@@ -171,7 +172,7 @@ export const submitActual = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     const kpi = await getKpi(data.kpi_definition_id);
 
     if (kpi.employee_id !== actor.id) {
@@ -276,7 +277,7 @@ export const reviewDecision = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     const kpi = await getKpi(data.kpi_definition_id);
     const isSeniorStep = kpi.status === "correction_requested";
 
@@ -411,7 +412,7 @@ export const requestCorrection = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     if (actor.role !== "executive") {
       await deny(actor, "request-correction", "Only executives can reopen an approved score", data.kpi_definition_id);
     }
@@ -440,7 +441,7 @@ export const getEvidenceLink = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ evidence_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: allowed } = await context.supabase
+    const { data: allowed } = await supabaseAdmin
       .from("evidence")
       .select("id,file_url")
       .eq("id", data.evidence_id)
@@ -461,7 +462,8 @@ export const getReportPayload = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    const client = context.supabase;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const client = supabaseAdmin;
     let kpiQuery = client
       .from("kpi_definitions")
       .select("*, employees:employee_id(name,email), score_records(*), actual_entries(*, evidence(*))");
@@ -484,7 +486,7 @@ export const runErpSync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const actor = await getEmployee(context.userId);
+    const actor = await resolveActor(context.userId, personaFromRequest());
     if (!["hr_admin", "executive"].includes(actor.role)) {
       await deny(actor, "erp-sync", "Only HR admins or executives can run the ERP sync");
     }
@@ -518,7 +520,12 @@ export const exportDataset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => z.object({ format: z.enum(["csv", "json"]) }).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const actor = await resolveActor(context.userId, personaFromRequest());
+    if (!["hr_admin", "executive"].includes(actor.role)) {
+      await deny(actor, "export-dataset", "Only HR admins or executives can export the org dataset");
+    }
+    const { data: rows, error } = await supabaseAdmin
       .from("kpi_definitions")
       .select("id,name,kpi_type,perspective,weight_percent,target_value,unit,status,period_start,period_end,employees:employee_id(name,department_id),score_records(version_number,achievement_percent,calculated_score,adjustment_delta,final_score,approved_at)");
     if (error) throw new Error(error.message);

@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/lib/queries";
 
 export type Me = {
   id: string;
@@ -10,21 +9,10 @@ export type Me = {
   manager_id: string | null;
 };
 
+/** The employee the app is acting as — the selected demo persona, or the signed-in account. */
 export function useMe() {
-  return useQuery({
-    queryKey: ["me"],
-    queryFn: async (): Promise<Me | null> => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return null;
-      const { data } = await supabase
-        .from("employees")
-        .select("id,name,email,role,department_id,manager_id")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-      return (data as Me | null) ?? null;
-    },
-    staleTime: 60_000,
-  });
+  const { data, isLoading } = useWorkspace();
+  return { data: (data?.me as Me | undefined) ?? null, isLoading };
 }
 
 export const ROLE_LABEL: Record<string, string> = {
@@ -33,3 +21,5 @@ export const ROLE_LABEL: Record<string, string> = {
   hr_admin: "HR Admin",
   executive: "Executive",
 };
+
+export const ROLE_ORDER = ["employee", "manager", "hr_admin", "executive"] as const;
