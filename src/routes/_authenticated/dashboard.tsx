@@ -516,7 +516,7 @@ function Dashboard() {
                   <YAxis allowDecimals={false} fontSize={12} stroke="var(--color-muted-foreground)" />
                   <Tooltip />
                   <ReferenceLine
-                    x={distribution[avgBandIndex]?.name}
+                    x={distribution[avgBandIndex]?.name ?? distribution[0]!.name}
                     stroke={NEUTRAL}
                     strokeDasharray="4 4"
                     label={{ value: `Average ${glance.avgScore}`, fontSize: 10, position: "top" }}
