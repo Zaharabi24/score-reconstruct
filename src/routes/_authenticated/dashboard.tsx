@@ -232,15 +232,63 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="panel p-5">
+          <h3 className="text-sm font-semibold">Performance trend over time</h3>
+          <p className="text-xs text-muted-foreground">Average approved score per period</p>
+          <div className="mt-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis dataKey="label" fontSize={12} stroke="var(--color-muted-foreground)" />
+                <YAxis domain={[0, 120]} fontSize={12} stroke="var(--color-muted-foreground)" />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  name="Average score"
+                  stroke="var(--color-primary)"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="panel p-5">
+          <h3 className="text-sm font-semibold">KPIs consistently below target</h3>
+          <p className="text-xs text-muted-foreground">Recurring gaps worth a conversation</p>
+          <ul className="mt-4 space-y-3">
+            {recurringGaps.length === 0 && (
+              <li className="text-sm text-muted-foreground">No KPIs are falling short of target right now.</li>
+            )}
+            {recurringGaps.map((gap) => (
+              <li key={`${gap.name}-${gap.employee}`} className="flex items-center justify-between gap-4 border-b border-border pb-2 last:border-0">
+                <div>
+                  <p className="text-sm font-medium">{gap.name}</p>
+                  <p className="text-xs text-muted-foreground">{gap.employee}</p>
+                </div>
+                <span className="num text-xs text-muted-foreground">
+                  {gap.misses} of {gap.periods} period{gap.periods === 1 ? "" : "s"} below target
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="panel p-5">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="num mt-2 text-3xl">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
+
   );
 }
