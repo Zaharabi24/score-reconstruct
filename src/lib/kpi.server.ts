@@ -266,7 +266,15 @@ export async function loadWorkspace(actor: EmployeeRow) {
 
   const employees = employeesRes.data ?? [];
   const orgWide = ["hr_admin", "executive"].includes(actor.role);
-  const teamIds = employees.filter((e) => e.manager_id === actor.id).map((e) => e.id);
+  // Department scoping is enforced at the data layer: a team lead sees their direct
+  // reports plus everyone in their own department — never another department.
+  const teamIds = employees
+    .filter(
+      (e) =>
+        e.manager_id === actor.id ||
+        (actor.role === "manager" && actor.department_id !== null && e.department_id === actor.department_id),
+    )
+    .map((e) => e.id);
 
   let kpiQuery = supabaseAdmin.from("kpi_definitions").select(KPI_SELECT).order("created_at", { ascending: false });
   if (!orgWide) {
