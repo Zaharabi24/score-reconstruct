@@ -29,6 +29,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-attention: var(--attention);
   --color-attention-foreground: var(--attention-foreground);
+  --color-exceptional: var(--exceptional);
   --color-surface-alt: var(--surface-alt);
   --color-border: var(--border);
   --color-input: var(--input);
