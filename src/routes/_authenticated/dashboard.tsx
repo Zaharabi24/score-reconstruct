@@ -185,19 +185,52 @@ function Dashboard() {
   const watch = deptRows.length > 1 ? deptRows[deptRows.length - 1] : null;
 
   /* ── Zone C ─────────────────────────────────────────────────── */
-  const gaps = useMemo(() => {
-    const byKpi = new Map<string, { name: string; employee: string; misses: number; periods: number }>();
-    for (const kpi of kpis ?? []) {
-      const achievement = latestScore(kpi)?.achievement_percent;
-      if (achievement === null || achievement === undefined) continue;
-      const key = `${kpi.name}::${kpi.employee_id}`;
-      const entry = byKpi.get(key) ?? { name: kpi.name, employee: kpi.employees?.name ?? "—", misses: 0, periods: 0 };
-      entry.periods += 1;
-      if (Number(achievement) < 90) entry.misses += 1;
-      byKpi.set(key, entry);
+
+
+  /** Per-person KPI score achievement for the current period (weighted, from real score records). */
+  const peopleProgress = useMemo(() => {
+    const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
+    const empById = new Map((employees ?? []).map((e) => [e.id, e]));
+    const map = new Map<
+      string,
+      { id: string; name: string; department: string; totalPoints: number; achievedPoints: number; kpiCount: number; pending: number }
+    >();
+
+    for (const kpi of currentKpis) {
+      const emp = empById.get(kpi.employee_id);
+      const row =
+        map.get(kpi.employee_id) ?? {
+          id: kpi.employee_id,
+          name: emp?.name ?? kpi.employees?.name ?? "—",
+          department: (emp?.department_id ? deptName.get(emp.department_id) : null) ?? "Unassigned",
+          totalPoints: 0,
+          achievedPoints: 0,
+          kpiCount: 0,
+          pending: 0,
+        };
+      row.kpiCount += 1;
+      const final = latestScore(kpi)?.final_score;
+      const weight = Number(kpi.weight_percent) || 0;
+      if (final === null || final === undefined) {
+        row.pending += 1;
+      } else {
+        row.totalPoints += weight;
+        row.achievedPoints += (Number(final) / 100) * weight;
+      }
+      map.set(kpi.employee_id, row);
     }
-    return [...byKpi.values()].filter((e) => e.misses >= 1).sort((a, b) => b.misses - a.misses);
-  }, [kpis]);
+
+    return [...map.values()]
+      .filter((r) => r.totalPoints > 0)
+      .map((r) => ({
+        ...r,
+        totalPoints: Math.round(r.totalPoints * 10) / 10,
+        achievedPoints: Math.round(r.achievedPoints * 10) / 10,
+        percent: Math.round((r.achievedPoints / r.totalPoints) * 1000) / 10,
+      }))
+      .sort((a, b) => b.percent - a.percent);
+  }, [currentKpis, departments, employees]);
+
 
   /* ── Zone D ─────────────────────────────────────────────────── */
   const distribution = useMemo(() => {
@@ -421,48 +454,64 @@ function Dashboard() {
         <div>
           <h2 className="text-lg">Recurring gaps</h2>
           <p className="text-sm text-muted-foreground">
-            KPIs that have missed target for two or more periods running — worth a conversation.
+            How much of their total KPI score each person has achieved this period.
           </p>
         </div>
         <div className="panel p-5">
-          {gaps.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing is falling short of target right now.</p>
+          {peopleProgress.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No approved scores yet for this period.</p>
           ) : (
-            <ul className="space-y-3">
-              {(showAllGaps ? gaps : gaps.slice(0, 5)).map((gap) => (
-                <li
-                  key={`${gap.name}-${gap.employee}`}
-                  className="flex items-start gap-3 rounded-lg border border-border p-3"
-                >
-                  <span
-                    aria-hidden
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: gap.misses >= 3 ? BRICK : gap.misses === 2 ? AMBER : NEUTRAL }}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{gap.name}</p>
-                    <p className="text-xs text-muted-foreground">{gap.employee}</p>
-                    <p className="mt-1 text-xs">
-                      {gap.misses >= 3
-                        ? `Missed target ${gap.misses} periods in a row`
-                        : gap.misses === 2
-                          ? "Missed target 2 periods in a row"
-                          : "Missed target every period so far"}
+            <ul className="divide-y divide-border">
+              {(showAllGaps ? peopleProgress : peopleProgress.slice(0, 6)).map((person) => {
+                const color = person.percent < 70 ? BRICK : person.percent < 90 ? AMBER : TEAL;
+                return (
+                  <li key={person.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        {person.name}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">· {person.department}</span>
+                      </p>
+                      <div className="flex items-baseline gap-3">
+                        <span className="num text-xs text-muted-foreground">
+                          {person.achievedPoints} / {person.totalPoints} pts
+                        </span>
+                        <span className="num text-sm font-semibold" style={{ color }}>
+                          {person.percent}%
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-secondary"
+                      role="progressbar"
+                      aria-valuenow={person.percent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${person.name} KPI achievement`}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(person.percent, 100)}%`, background: color }}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {person.kpiCount} KPI{person.kpiCount === 1 ? "" : "s"}
+                      {person.pending > 0 ? ` · ${person.pending} awaiting approval` : ""}
                     </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
-          {gaps.length > 5 && (
+          {peopleProgress.length > 6 && (
             <button
               type="button"
               onClick={() => setShowAllGaps((v) => !v)}
               className="mt-4 text-xs font-medium text-primary underline underline-offset-4"
             >
-              {showAllGaps ? "Show fewer" : `View all (${gaps.length})`}
+              {showAllGaps ? "Show fewer" : `View all (${peopleProgress.length})`}
             </button>
           )}
+
         </div>
       </section>
 
