@@ -482,6 +482,7 @@ export type Database = {
     }
     Functions: {
       reset_demo_data: { Args: never; Returns: undefined }
+      seed_demo_history: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
