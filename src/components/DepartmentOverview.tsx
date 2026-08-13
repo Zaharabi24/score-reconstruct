@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import {
   ACHIEVEMENT_MAX,
@@ -14,14 +14,66 @@ import {
 import type { EmployeeLite, KpiRow } from "@/lib/queries";
 
 const SCORED_STATUSES = ["approved", "submitted", "correction_requested"];
-const PENDING_STATUS_META: { key: string; label: string; className: string }[] = [
-  { key: "active", label: "awaiting actual", className: "bg-muted-foreground/50" },
-  { key: "submitted", label: "pending your review", className: "bg-attention" },
-  { key: "correction_requested", label: "pending final approval", className: "bg-exceptional" },
-  { key: "returned", label: "returned", className: "bg-destructive" },
-  { key: "pending_target_approval", label: "target pending", className: "bg-primary/60" },
-  { key: "draft", label: "in draft", className: "bg-border" },
+const PENDING_STATUS_META: {
+  key: string;
+  label: string;
+  className: string;
+  dotClassName: string;
+  tintClassName: string;
+  hint: string;
+  needsAction?: boolean;
+}[] = [
+  {
+    key: "active",
+    label: "awaiting actual",
+    className: "bg-muted-foreground/50",
+    dotClassName: "bg-muted-foreground/50",
+    tintClassName: "hover:bg-muted focus-visible:bg-muted",
+    hint: "Employee hasn't submitted a result yet",
+  },
+  {
+    key: "submitted",
+    label: "pending your review",
+    className: "bg-attention",
+    dotClassName: "bg-attention",
+    tintClassName: "hover:bg-attention/10 focus-visible:bg-attention/10",
+    hint: "Submitted with evidence, waiting on your decision",
+    needsAction: true,
+  },
+  {
+    key: "correction_requested",
+    label: "pending final approval",
+    className: "bg-exceptional",
+    dotClassName: "bg-exceptional",
+    tintClassName: "hover:bg-exceptional/10 focus-visible:bg-exceptional/10",
+    hint: "Adjusted score awaiting your final sign-off",
+  },
+  {
+    key: "returned",
+    label: "returned",
+    className: "bg-destructive",
+    dotClassName: "bg-destructive",
+    tintClassName: "hover:bg-destructive/10 focus-visible:bg-destructive/10",
+    hint: "Sent back for clarification, waiting on employee",
+  },
+  {
+    key: "pending_target_approval",
+    label: "target pending",
+    className: "bg-primary/60",
+    dotClassName: "bg-primary/60",
+    tintClassName: "hover:bg-primary/10 focus-visible:bg-primary/10",
+    hint: "Target needs your approval before tracking starts",
+  },
+  {
+    key: "draft",
+    label: "in draft",
+    className: "bg-border",
+    dotClassName: "bg-border",
+    tintClassName: "hover:bg-muted focus-visible:bg-muted",
+    hint: "Not yet issued to the employee",
+  },
 ];
+
 
 /** Process/admin KPIs are excluded from people-performance lists. */
 function isPeopleKpi(kpi: KpiRow, teamIds: Set<string>) {
@@ -34,13 +86,16 @@ export function DepartmentOverview({
   periodStart,
   previousPeriodKpis,
   departmentName,
+  onFilterStatus,
 }: {
   kpis: KpiRow[];
   team: EmployeeLite[];
   periodStart: string | null;
   previousPeriodKpis: KpiRow[];
   departmentName: string;
+  onFilterStatus?: (status: string) => void;
 }) {
+
   const teamIds = useMemo(() => new Set(team.map((e) => e.id)), [team]);
   const peopleKpis = useMemo(() => kpis.filter((k) => isPeopleKpi(k, teamIds)), [kpis, teamIds]);
 
@@ -96,7 +151,7 @@ export function DepartmentOverview({
       <div className="grid gap-4 lg:grid-cols-2">
         <AverageAchievement average={average} delta={delta} hasPrior={priorAverage !== null} />
         <Performers top={top} bottom={bottom} />
-        <PendingEvaluations total={pending.length} segments={pendingCounts} />
+        <PendingEvaluations total={pending.length} segments={pendingCounts} onFilterStatus={onFilterStatus} />
         <BelowTarget rows={belowTarget} previousPeriodKpis={previousPeriodKpis} />
       </div>
     </section>
@@ -206,39 +261,115 @@ function MiniList({
   );
 }
 
+type PendingSegment = {
+  key: string;
+  label: string;
+  className: string;
+  dotClassName: string;
+  tintClassName: string;
+  hint: string;
+  needsAction?: boolean;
+  count: number;
+};
+
 function PendingEvaluations({
   total,
   segments,
+  onFilterStatus,
 }: {
   total: number;
-  segments: { key: string; label: string; className: string; count: number }[];
+  segments: PendingSegment[];
+  onFilterStatus?: ((status: string) => void) | undefined;
 }) {
+  const pctOf = (count: number) => (total ? (count / total) * 100 : 0);
+  const narrow = segments.filter((s) => pctOf(s.count) < 12 && s.count > 0);
+
   return (
     <div className="panel p-6">
       <p className="field-label">Pending evaluations</p>
       <p className="num mt-2 text-[34px] font-semibold leading-none">{total}</p>
-      <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-surface-alt">
-        {segments.map((s) => (
-          <div
-            key={s.key}
-            className={s.className}
-            style={{ width: `${total ? (s.count / total) * 100 : 0}%` }}
-            title={`${s.count} ${s.label}`}
-          />
-        ))}
+      <p className="mt-1.5 text-xs text-muted-foreground">across your department this period</p>
+
+      {/* labels for segments too narrow to hold a number inside the bar */}
+      {narrow.length > 0 && (
+        <div className="relative mt-4 h-5 w-full">
+          {segments.reduce<{ acc: number; nodes: ReactNode[] }>(
+            (state, s) => {
+              const w = pctOf(s.count);
+              if (w > 0 && w < 12) {
+                state.nodes.push(
+                  <span
+                    key={s.key}
+                    className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
+                    style={{ left: `${state.acc + w / 2}%` }}
+                  >
+                    <span className="num text-[11px] text-muted-foreground">{s.count}</span>
+                    <span className={`h-2 w-px ${s.dotClassName}`} />
+                  </span>,
+                );
+              }
+              state.acc += w;
+              return state;
+            },
+            { acc: 0, nodes: [] },
+          ).nodes}
+        </div>
+      )}
+
+      <div
+        className="mt-2 flex h-4 w-full overflow-hidden rounded-full bg-surface-alt"
+        role="img"
+        aria-label={segments.map((s) => `${s.count} ${s.label}`).join(", ") || "No pending evaluations"}
+      >
+        {segments.map((s) => {
+          const w = pctOf(s.count);
+          return (
+            <div
+              key={s.key}
+              className={`flex items-center justify-center ${s.className}`}
+              style={{ width: `${w}%` }}
+              title={`${s.count} ${s.label}`}
+            >
+              {w >= 12 && (
+                <span className="num text-[10px] font-semibold text-background">{s.count}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        {segments.length
-          ? segments.map((s, i) => (
-              <span key={s.key}>
-                {i > 0 && " · "}
-                <span className="num">{s.count}</span> {s.label}
+
+      <ul className="mt-4 space-y-2">
+        {!segments.length && (
+          <li className="text-xs text-muted-foreground">Every KPI in this department is locked.</li>
+        )}
+        {segments.map((s) => (
+          <li key={s.key}>
+            <button
+              type="button"
+              onClick={() => onFilterStatus?.(s.key)}
+              className={`flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${s.tintClassName}`}
+            >
+              <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${s.dotClassName}`} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-[13px]">
+                    <span className="num font-semibold">{s.count}</span> {s.label}
+                  </span>
+                  {s.needsAction && (
+                    <span className="rounded-full border border-attention/30 bg-attention/10 px-2 py-0.5 text-[10px] font-medium text-attention">
+                      Needs your action
+                    </span>
+                  )}
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{s.hint}</span>
               </span>
-            ))
-          : "Every KPI in this department is locked."}
-      </p>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
+
 }
 
 function BelowTarget({
