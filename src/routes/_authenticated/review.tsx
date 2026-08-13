@@ -200,47 +200,53 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="panel p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold">{kpi.name}</h3>
-            <p className="text-xs text-muted-foreground">{kpi.employees?.name}</p>
+    <div className="space-y-6">
+      <div className="panel p-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-bold">{kpi.name}</h3>
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">{kpi.employees?.name}</p>
           </div>
-          <Link to="/kpi/$id" params={{ id: kpi.id }} className="text-xs underline">
-            Open full record
+          <Link
+            to="/kpi/$id"
+            params={{ id: kpi.id }}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            Open full record <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
-          <div>
-            <dt className="text-xs text-muted-foreground">Target</dt>
-            <dd className="num">{kpi.target_value ?? "—"}</dd>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="stat-block">
+            <p className="field-label">Target</p>
+            <p className="num mt-1 text-[15px] font-medium">{kpi.target_value ?? "—"}</p>
           </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Actual</dt>
-            <dd className="num">{actual?.actual_value ?? actual?.rubric_level ?? "—"}</dd>
+          <div className="stat-block">
+            <p className="field-label">Actual</p>
+            <p className="num mt-1 text-[15px] font-medium">{actual?.actual_value ?? actual?.rubric_level ?? "—"}</p>
           </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Evidence</dt>
-            <dd className="num">{(actual?.evidence ?? []).length} file(s)</dd>
+          <div className="stat-block">
+            <p className="field-label">Evidence</p>
+            <p className="num mt-1 text-[15px] font-medium">{(actual?.evidence ?? []).length} file(s)</p>
           </div>
-        </dl>
-        {actual?.comments && <p className="mt-3 text-sm text-muted-foreground">“{actual.comments}”</p>}
+        </div>
+        {actual?.comments && <p className="quote-callout mt-5 text-sm">“{actual.comments}”</p>}
       </div>
 
       <CalculationPanel kpi={kpi} score={score} />
 
-      <div className="panel space-y-4 p-5">
-        <h3 className="text-sm font-semibold">Decision</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="panel space-y-5 p-6">
+        <h3 className="text-base font-bold">Decision</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="delta">Adjustment (points)</Label>
-            <Input id="delta" type="number" value={delta} onChange={(e) => setDelta(e.target.value)} />
+            <Label htmlFor="delta" className="field-label">
+              Adjustment (points)
+            </Label>
+            <Input id="delta" type="number" className="num h-10" value={delta} onChange={(e) => setDelta(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Reason code</Label>
+            <Label className="field-label">Reason code</Label>
             <Select value={reasonCode} onValueChange={setReasonCode}>
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -254,12 +260,15 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="just">Justification</Label>
+          <Label htmlFor="just" className="field-label">
+            Justification
+          </Label>
           <Textarea id="just" rows={3} value={justification} onChange={(e) => setJustification(e.target.value)} />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
+            className="h-10 rounded-lg font-semibold"
             disabled={busy}
             onClick={() =>
               run(
@@ -268,10 +277,11 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
               )
             }
           >
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve as calculated
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Approve calculated
           </Button>
           <Button
-            variant="secondary"
+            variant="outline"
+            className="h-10 rounded-lg border-primary text-primary hover:bg-primary/10 hover:text-primary"
             disabled={busy || Number(delta) === 0 || justification.trim().length < 10}
             onClick={() =>
               run(
@@ -292,7 +302,8 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
             Apply adjustment
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
+            className="h-10 rounded-lg text-muted-foreground"
             disabled={busy || justification.trim().length < 5}
             onClick={() =>
               run(
@@ -314,3 +325,4 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
     </div>
   );
 }
+
