@@ -154,7 +154,7 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
                 disabled={busy}
                 onClick={() =>
                   run(
-                    () => approveTargetFn({ data: { kpi_definition_id: kpi.id, decision: "approve" } }),
+                    () => approveTargetFn({ data: { kpi_definition_id: kpi.id, approve: true } }),
                     "Target approved — the KPI is now active",
                   )
                 }
