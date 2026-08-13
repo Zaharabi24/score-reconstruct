@@ -185,19 +185,7 @@ function Dashboard() {
   const watch = deptRows.length > 1 ? deptRows[deptRows.length - 1] : null;
 
   /* ── Zone C ─────────────────────────────────────────────────── */
-  const gaps = useMemo(() => {
-    const byKpi = new Map<string, { name: string; employee: string; misses: number; periods: number }>();
-    for (const kpi of kpis ?? []) {
-      const achievement = latestScore(kpi)?.achievement_percent;
-      if (achievement === null || achievement === undefined) continue;
-      const key = `${kpi.name}::${kpi.employee_id}`;
-      const entry = byKpi.get(key) ?? { name: kpi.name, employee: kpi.employees?.name ?? "—", misses: 0, periods: 0 };
-      entry.periods += 1;
-      if (Number(achievement) < 90) entry.misses += 1;
-      byKpi.set(key, entry);
-    }
-    return [...byKpi.values()].filter((e) => e.misses >= 1).sort((a, b) => b.misses - a.misses);
-  }, [kpis]);
+
 
   /** Per-person KPI score achievement for the current period (weighted, from real score records). */
   const peopleProgress = useMemo(() => {
