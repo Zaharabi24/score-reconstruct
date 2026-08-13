@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div>
+        <div className={screens.length ? "" : "hidden"}>
           <p className="px-1 text-[11px] uppercase tracking-[0.14em] opacity-60">Screens</p>
           <nav className="mt-2 grid gap-1">
             {screens.map((item) => (
