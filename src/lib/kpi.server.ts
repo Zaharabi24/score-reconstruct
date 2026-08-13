@@ -234,15 +234,23 @@ export async function resolveActor(userId: string, personaId?: string | null): P
 
 export const DEMO_MODE = true;
 
+/** The four canonical demo personas, one per role, in presentation order. */
+const PERSONA_EMAILS = [
+  "employee@anwarkpiflow.demo",
+  "manager@anwarkpiflow.demo",
+  "hradmin@anwarkpiflow.demo",
+  "executive@anwarkpiflow.demo",
+];
+
 export async function listPersonas() {
   const { data } = await supabaseAdmin
     .from("employees")
     .select("id,name,email,role,department_id,manager_id")
-    .eq("is_demo", true)
-    .in("role", ["employee", "manager", "hr_admin", "executive"])
-    .order("role");
-  return (data ?? []) as EmployeeRow[];
+    .in("email", PERSONA_EMAILS);
+  const rows = (data ?? []) as EmployeeRow[];
+  return PERSONA_EMAILS.map((email) => rows.find((r) => r.email === email)).filter(Boolean) as EmployeeRow[];
 }
+
 
 /** Everything the signed-in persona is allowed to see, read server-side in one round trip. */
 export async function loadWorkspace(actor: EmployeeRow) {
