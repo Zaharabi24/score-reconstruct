@@ -199,6 +199,51 @@ function Dashboard() {
     return [...byKpi.values()].filter((e) => e.misses >= 1).sort((a, b) => b.misses - a.misses);
   }, [kpis]);
 
+  /** Per-person KPI score achievement for the current period (weighted, from real score records). */
+  const peopleProgress = useMemo(() => {
+    const deptName = new Map((departments ?? []).map((d) => [d.id, d.name]));
+    const empById = new Map((employees ?? []).map((e) => [e.id, e]));
+    const map = new Map<
+      string,
+      { id: string; name: string; department: string; totalPoints: number; achievedPoints: number; kpiCount: number; pending: number }
+    >();
+
+    for (const kpi of currentKpis) {
+      const emp = empById.get(kpi.employee_id);
+      const row =
+        map.get(kpi.employee_id) ?? {
+          id: kpi.employee_id,
+          name: emp?.name ?? kpi.employees?.name ?? "—",
+          department: (emp?.department_id ? deptName.get(emp.department_id) : null) ?? "Unassigned",
+          totalPoints: 0,
+          achievedPoints: 0,
+          kpiCount: 0,
+          pending: 0,
+        };
+      row.kpiCount += 1;
+      const final = latestScore(kpi)?.final_score;
+      const weight = Number(kpi.weight_percent) || 0;
+      if (final === null || final === undefined) {
+        row.pending += 1;
+      } else {
+        row.totalPoints += weight;
+        row.achievedPoints += (Number(final) / 100) * weight;
+      }
+      map.set(kpi.employee_id, row);
+    }
+
+    return [...map.values()]
+      .filter((r) => r.totalPoints > 0)
+      .map((r) => ({
+        ...r,
+        totalPoints: Math.round(r.totalPoints * 10) / 10,
+        achievedPoints: Math.round(r.achievedPoints * 10) / 10,
+        percent: Math.round((r.achievedPoints / r.totalPoints) * 1000) / 10,
+      }))
+      .sort((a, b) => b.percent - a.percent);
+  }, [currentKpis, departments, employees]);
+
+
   /* ── Zone D ─────────────────────────────────────────────────── */
   const distribution = useMemo(() => {
     const bands = [
