@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getPersonaId } from "@/lib/demo";
 import { ShieldCheck, Workflow, FileSearch, LineChart } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureDemoAccount } from "@/lib/workspace.functions";
+import { ensureDemoAccount, getWorkspace } from "@/lib/workspace.functions";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -34,7 +36,17 @@ const PILLARS = [
 
 function Landing() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+
+  // Warm the workspace cache so the first authenticated screen paints instantly.
+  const prefetchWorkspace = () => {
+    void queryClient.prefetchQuery({
+      queryKey: ["workspace", getPersonaId()],
+      queryFn: async () => (await getWorkspace()) as unknown,
+      staleTime: 5 * 60_000,
+    });
+  };
 
   // Guest access: start the shared demo session and land on the Employee KPI screen.
   const enterAsGuest = async () => {
@@ -46,6 +58,7 @@ function Landing() {
         const { error } = await supabase.auth.signInWithPassword(creds);
         if (error) throw new Error(error.message);
       }
+      prefetchWorkspace();
       await router.navigate({ to: "/kpis" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the workspace");
@@ -64,6 +77,7 @@ function Landing() {
         const { error } = await supabase.auth.signInWithPassword(creds);
         if (error) throw new Error(error.message);
       }
+      prefetchWorkspace();
       await router.navigate({ to: "/kpis" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
@@ -78,7 +92,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" disabled={loading} onClick={enterAsGuest}>
+            <Button size="sm" disabled={loading} onMouseEnter={prefetchWorkspace} onClick={enterAsGuest}>
               Guest Login
             </Button>
             <Button asChild size="sm">
@@ -99,7 +113,7 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button size="lg" disabled={loading} onClick={enterDashboard}>
+          <Button size="lg" disabled={loading} onMouseEnter={prefetchWorkspace} onClick={enterDashboard}>
             Go to the Dashboard
           </Button>
         </div>
