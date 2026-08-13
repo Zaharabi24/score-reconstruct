@@ -82,7 +82,7 @@ function MyKpis() {
                 <WorkflowStepper status={kpi.status} />
               </div>
 
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              <span className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                 View Details <ChevronRight className="h-4 w-4" />
               </span>
 
