@@ -99,7 +99,7 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button size="lg" disabled={loading} onClick={enterAsGuest}>
+          <Button size="lg" disabled={loading} onClick={enterDashboard}>
             Go to the Dashboard
           </Button>
         </div>
