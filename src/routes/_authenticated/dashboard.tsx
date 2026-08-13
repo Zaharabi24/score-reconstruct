@@ -6,6 +6,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,6 +33,7 @@ function Dashboard() {
   const { data: kpis } = useKpis();
   const { data: employees } = useEmployees();
   const { data: departments } = useDepartments();
+
 
   const deptScores = useMemo(() => {
     const empDept = new Map((employees ?? []).map((e) => [e.id, e.department_id]));
