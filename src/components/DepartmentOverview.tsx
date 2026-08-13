@@ -86,13 +86,16 @@ export function DepartmentOverview({
   periodStart,
   previousPeriodKpis,
   departmentName,
+  onFilterStatus,
 }: {
   kpis: KpiRow[];
   team: EmployeeLite[];
   periodStart: string | null;
   previousPeriodKpis: KpiRow[];
   departmentName: string;
+  onFilterStatus?: (status: string) => void;
 }) {
+
   const teamIds = useMemo(() => new Set(team.map((e) => e.id)), [team]);
   const peopleKpis = useMemo(() => kpis.filter((k) => isPeopleKpi(k, teamIds)), [kpis, teamIds]);
 
