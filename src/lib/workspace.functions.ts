@@ -23,3 +23,29 @@ export const resetDemoData = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/**
+ * Demo mode only: makes sure the shared presenter account exists and returns its
+ * credentials so the browser can start a real Supabase session for it.
+ * The account only ever sees seeded demo data.
+ */
+export const ensureDemoAccount = createServerFn({ method: "POST" }).handler(async () => {
+  if (!DEMO_MODE) throw new Error("Demo mode is disabled");
+  const email = "demo@anwarkpiflow.demo";
+  const password = "Demo@2026";
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+  const existing = list?.users?.find((u) => u.email === email);
+  if (!existing) {
+    const { error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name: "KPIFlow Demo" },
+    });
+    if (error) throw new Error(error.message);
+  } else {
+    await supabaseAdmin.auth.admin.updateUserById(existing.id, { password, email_confirm: true });
+  }
+  return { email, password };
+});
