@@ -102,7 +102,7 @@ function ReviewPanel({ kpi }: { kpi: KpiRow }) {
   const score = latestScore(kpi);
   const actual = latestActual(kpi);
   const [delta, setDelta] = useState("0");
-  const [reasonCode, setReasonCode] = useState(REASON_CODES[0]);
+  const [reasonCode, setReasonCode] = useState<string>(REASON_CODES[0]!);
   const [justification, setJustification] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [busy, setBusy] = useState(false);

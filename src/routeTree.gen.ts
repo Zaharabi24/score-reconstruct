@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedKpisRouteImport } from './routes/_authenticated/kpis'
+import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
+import { Route as AuthenticatedSummaryRouteImport } from './routes/_authenticated/summary'
 import { Route as AuthenticatedKpiIdRouteImport } from './routes/_authenticated/kpi.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +36,16 @@ const AuthenticatedKpisRoute = AuthenticatedKpisRouteImport.update({
   path: '/kpis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReviewRoute = AuthenticatedReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSummaryRoute = AuthenticatedSummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedKpiIdRoute = AuthenticatedKpiIdRouteImport.update({
   id: '/kpi/$id',
   path: '/kpi/$id',
@@ -44,12 +56,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kpis': typeof AuthenticatedKpisRoute
+  '/review': typeof AuthenticatedReviewRoute
+  '/summary': typeof AuthenticatedSummaryRoute
   '/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kpis': typeof AuthenticatedKpisRoute
+  '/review': typeof AuthenticatedReviewRoute
+  '/summary': typeof AuthenticatedSummaryRoute
   '/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRoutesById {
@@ -58,19 +74,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/kpis': typeof AuthenticatedKpisRoute
+  '/_authenticated/review': typeof AuthenticatedReviewRoute
+  '/_authenticated/summary': typeof AuthenticatedSummaryRoute
   '/_authenticated/kpi/$id': typeof AuthenticatedKpiIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/kpis' | '/kpi/$id'
+  fullPaths: '/' | '/auth' | '/kpis' | '/review' | '/summary' | '/kpi/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/kpis' | '/kpi/$id'
+  to: '/' | '/auth' | '/kpis' | '/review' | '/summary' | '/kpi/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/kpis'
+    | '/_authenticated/review'
+    | '/_authenticated/summary'
     | '/_authenticated/kpi/$id'
   fileRoutesById: FileRoutesById
 }
@@ -110,6 +130,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKpisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/review': {
+      id: '/_authenticated/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AuthenticatedReviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/summary': {
+      id: '/_authenticated/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof AuthenticatedSummaryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kpi/$id': {
       id: '/_authenticated/kpi/$id'
       path: '/kpi/$id'
@@ -122,11 +156,15 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedKpisRoute: typeof AuthenticatedKpisRoute
+  AuthenticatedReviewRoute: typeof AuthenticatedReviewRoute
+  AuthenticatedSummaryRoute: typeof AuthenticatedSummaryRoute
   AuthenticatedKpiIdRoute: typeof AuthenticatedKpiIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKpisRoute: AuthenticatedKpisRoute,
+  AuthenticatedReviewRoute: AuthenticatedReviewRoute,
+  AuthenticatedSummaryRoute: AuthenticatedSummaryRoute,
   AuthenticatedKpiIdRoute: AuthenticatedKpiIdRoute,
 }
 
