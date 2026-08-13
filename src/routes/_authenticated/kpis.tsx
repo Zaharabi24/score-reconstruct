@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { differenceInCalendarDays } from "date-fns";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useKpis, useRealtimeKpis } from "@/lib/queries";
+import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { WorkflowStepper } from "@/components/WorkflowStepper";
 
