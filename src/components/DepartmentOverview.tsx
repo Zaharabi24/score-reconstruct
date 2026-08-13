@@ -1,5 +1,8 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowDown, ArrowUp, ChevronRight, Flag, Minus, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import {
   ACHIEVEMENT_MAX,
   BAND_BG,
