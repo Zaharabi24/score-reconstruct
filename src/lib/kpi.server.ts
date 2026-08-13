@@ -213,7 +213,7 @@ export async function assertWeightBudget(employeeId: string, weight: number, per
    ──────────────────────────────────────────────────────────────── */
 
 export const KPI_SELECT =
-  "*, employees:employee_id(id,name,email,department_id), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
+  "*, employees:employee_id(id,name,email,department_id,designation), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
 
 /**
  * The acting employee for a request. In demo mode an authenticated presenter can
