@@ -82,6 +82,10 @@ function MyKpis() {
                 <WorkflowStepper status={kpi.status} />
               </div>
 
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                View Details <ChevronRight className="h-4 w-4" />
+              </span>
+
               <p className="mt-4 text-xs text-muted-foreground">
                 {daysLeft >= 0 ? `${daysLeft} days remaining in period` : `Period closed ${-daysLeft} days ago`}
               </p>
