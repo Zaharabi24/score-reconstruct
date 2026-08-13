@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { differenceInCalendarDays } from "date-fns";
+import { ChevronRight } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useKpis, useRealtimeKpis } from "@/lib/queries";
 import { EmployeeTabs } from "@/components/EmployeeTabs";
