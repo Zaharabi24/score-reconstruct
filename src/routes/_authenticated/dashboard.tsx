@@ -173,7 +173,12 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Employees evaluated" value={String(management.evaluated)} hint={`${management.pendingKpis} KPIs still pending`} />
+        <Stat
+          label="Employees evaluated"
+          value={String(management.evaluated)}
+          hint={`${management.awaitingEmployees} awaiting evaluation · ${management.pendingKpis} KPIs pending`}
+        />
+
         <Stat label="Average KPI score" value={String(management.avgScore)} hint="Approved final scores" />
         <Stat label="Average achievement" value={`${management.avgAchievement}%`} hint="Actual vs target" />
         <Stat label="Approvals pending" value={String(management.approvalsPending)} hint="Targets & submissions" />
