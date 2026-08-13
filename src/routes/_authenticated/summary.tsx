@@ -9,6 +9,7 @@ import { weightedRollUp } from "@/lib/scoring";
 import { getReportPayload } from "@/lib/kpi.functions";
 import { buildKpiReport } from "@/lib/report";
 import { AuditTrail } from "@/components/AuditTrail";
+import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 
