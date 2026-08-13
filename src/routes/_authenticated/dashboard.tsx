@@ -290,34 +290,25 @@ function Dashboard() {
             The six numbers that tell you how this quarter is going.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Stat
-            label="People evaluated"
-            value={`${glance.evaluated} of ${glance.people}`}
-            hint={`${glance.stillPending} still being evaluated`}
-          />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Evaluated / pending" value={`${glance.evaluated} / ${glance.people}`} />
           <Stat label="Average score" value={`${glance.avgScore} / 120`} hint="From approved scores only" />
+          <Stat label="Avg. target achievement" value={`${glance.avgAchievement}%`} />
+          <Stat label="Approvals pending" value={String(glance.approvalsPending)} />
           <Stat
-            label="Average achievement"
-            value={`${glance.avgAchievement}%`}
-            hint="How close actuals came to target, on average"
+            label="Best department"
+            value={best ? `${best.name} (${best.achievement})` : "—"}
+            textValue
           />
           <Stat
-            label="Waiting on approval"
-            value={String(glance.approvalsPending)}
-            hint="Targets & submitted results combined"
+            label="Weakest department"
+            value={watch ? `${watch.name} (${watch.achievement})` : "—"}
+            textValue
           />
-          <Stat
-            label="Manually adjusted"
-            value={`${glance.adjusted} of ${glance.totalKpis} (${glance.adjustedRate}%)`}
-            hint="Scores changed by a reviewer, with a reason on file"
-          />
-          <Stat
-            label="Evidence attached"
-            value={`${glance.evidence}%`}
-            hint="Of submitted results have supporting evidence"
-          />
+          <Stat label="KPIs below target" value={String(glance.belowTarget)} />
+          <Stat label="Manually adjusted" value={String(glance.adjusted)} />
         </div>
+
       </section>
 
       {/* ZONE B */}
