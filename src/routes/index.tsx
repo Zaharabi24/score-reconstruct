@@ -81,8 +81,8 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button asChild size="lg">
-            <Link to="/auth">Open the workspace</Link>
+          <Button size="lg" disabled={loading} onClick={enterAsGuest}>
+            Go to the Dashboard
           </Button>
         </div>
 
