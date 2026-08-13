@@ -466,48 +466,64 @@ function Dashboard() {
         <div>
           <h2 className="text-lg">Recurring gaps</h2>
           <p className="text-sm text-muted-foreground">
-            KPIs that have missed target for two or more periods running — worth a conversation.
+            How much of their total KPI score each person has achieved this period.
           </p>
         </div>
         <div className="panel p-5">
-          {gaps.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing is falling short of target right now.</p>
+          {peopleProgress.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No approved scores yet for this period.</p>
           ) : (
-            <ul className="space-y-3">
-              {(showAllGaps ? gaps : gaps.slice(0, 5)).map((gap) => (
-                <li
-                  key={`${gap.name}-${gap.employee}`}
-                  className="flex items-start gap-3 rounded-lg border border-border p-3"
-                >
-                  <span
-                    aria-hidden
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: gap.misses >= 3 ? BRICK : gap.misses === 2 ? AMBER : NEUTRAL }}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{gap.name}</p>
-                    <p className="text-xs text-muted-foreground">{gap.employee}</p>
-                    <p className="mt-1 text-xs">
-                      {gap.misses >= 3
-                        ? `Missed target ${gap.misses} periods in a row`
-                        : gap.misses === 2
-                          ? "Missed target 2 periods in a row"
-                          : "Missed target every period so far"}
+            <ul className="divide-y divide-border">
+              {(showAllGaps ? peopleProgress : peopleProgress.slice(0, 6)).map((person) => {
+                const color = person.percent < 70 ? BRICK : person.percent < 90 ? AMBER : TEAL;
+                return (
+                  <li key={person.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        {person.name}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">· {person.department}</span>
+                      </p>
+                      <div className="flex items-baseline gap-3">
+                        <span className="num text-xs text-muted-foreground">
+                          {person.achievedPoints} / {person.totalPoints} pts
+                        </span>
+                        <span className="num text-sm font-semibold" style={{ color }}>
+                          {person.percent}%
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-secondary"
+                      role="progressbar"
+                      aria-valuenow={person.percent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${person.name} KPI achievement`}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(person.percent, 100)}%`, background: color }}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {person.kpiCount} KPI{person.kpiCount === 1 ? "" : "s"}
+                      {person.pending > 0 ? ` · ${person.pending} awaiting approval` : ""}
                     </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
-          {gaps.length > 5 && (
+          {peopleProgress.length > 6 && (
             <button
               type="button"
               onClick={() => setShowAllGaps((v) => !v)}
               className="mt-4 text-xs font-medium text-primary underline underline-offset-4"
             >
-              {showAllGaps ? "Show fewer" : `View all (${gaps.length})`}
+              {showAllGaps ? "Show fewer" : `View all (${peopleProgress.length})`}
             </button>
           )}
+
         </div>
       </section>
 
