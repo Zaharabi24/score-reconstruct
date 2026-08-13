@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { ensureDemoAccount } from "@/lib/workspace.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +72,21 @@ function AuthPage() {
       return;
     }
     router.navigate({ to: "/kpis" });
+  };
+
+  // One click into the seeded demo workspace; role is chosen later with the persona switcher.
+  const enterDemo = async () => {
+    setLoading(true);
+    try {
+      const creds = await ensureDemoAccount();
+      const { error } = await supabase.auth.signInWithPassword(creds);
+      if (error) throw new Error(error.message);
+      router.navigate({ to: "/kpis" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not start the demo");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const google = async () => {
@@ -168,6 +184,13 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={google}>
             Continue with Google
           </Button>
+          <Button variant="secondary" className="mt-3 w-full" disabled={loading} onClick={enterDemo}>
+            Explore the seeded demo workspace
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Opens the demo account — switch between employee, manager, HR and executive views inside.
+          </p>
+
         </div>
       </div>
     </div>

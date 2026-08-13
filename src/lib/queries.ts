@@ -1,9 +1,8 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-export const KPI_SELECT =
-  "*, employees:employee_id(id,name,email,department_id), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
+import { getWorkspace } from "@/lib/workspace.functions";
+import { useDemoPersonaId } from "@/lib/demo";
 
 export type KpiRow = Record<string, unknown> & {
   id: string;
@@ -21,6 +20,7 @@ export type KpiRow = Record<string, unknown> & {
   employee_id: string;
   reviewer_id: string | null;
   approver_id: string | null;
+  department_id: string | null;
   milestones: unknown;
   score_records: ScoreRow[];
   actual_entries: ActualRow[];
@@ -61,6 +61,40 @@ export type ActualRow = {
   }[];
 };
 
+export type EmployeeLite = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department_id: string | null;
+  manager_id: string | null;
+  is_demo?: boolean;
+};
+
+export type AuditRow = Record<string, unknown> & {
+  id: string;
+  entity_type: string;
+  entity_id: string | null;
+  action: string;
+  actor_id: string | null;
+  actor_role: string | null;
+  timestamp: string;
+  reason: string | null;
+  before_value: unknown;
+  after_value: unknown;
+};
+
+export type Workspace = {
+  me: EmployeeLite;
+  personas: EmployeeLite[];
+  employees: EmployeeLite[];
+  departments: { id: string; name: string }[];
+  rubrics: { id: string; name: string; levels: unknown }[];
+  policies: { department_id: string | null; achievement_floor: number; achievement_cap: number; adjustment_escalation_threshold: number }[];
+  kpis: KpiRow[];
+  audit: AuditRow[];
+};
+
 export function latestScore(kpi: { score_records?: ScoreRow[] }): ScoreRow | null {
   const rows = [...(kpi.score_records ?? [])].sort((a, b) => b.version_number - a.version_number);
   return rows[0] ?? null;
@@ -71,114 +105,73 @@ export function latestActual(kpi: { actual_entries?: ActualRow[] }): ActualRow |
   return rows[0] ?? null;
 }
 
-export function useKpis(filter?: { employeeId?: string; reviewerId?: string }) {
+/** Single server-side read that respects the active persona's role. */
+export function useWorkspace() {
+  const personaId = useDemoPersonaId();
   return useQuery({
-    queryKey: ["kpis", filter?.employeeId ?? null, filter?.reviewerId ?? null],
-    queryFn: async () => {
-      let q = supabase.from("kpi_definitions").select(KPI_SELECT).order("created_at", { ascending: false });
-      if (filter?.employeeId) q = q.eq("employee_id", filter.employeeId);
-      if (filter?.reviewerId) q = q.eq("reviewer_id", filter.reviewerId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as unknown as KpiRow[];
-    },
+    queryKey: ["workspace", personaId],
+    queryFn: async () => (await getWorkspace()) as unknown as Workspace,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
+}
+
+export function useKpis(filter?: { employeeId?: string; reviewerId?: string }) {
+  const { data, isLoading, error } = useWorkspace();
+  const kpis = useMemo(() => {
+    let rows = data?.kpis ?? [];
+    if (filter?.employeeId) rows = rows.filter((k) => k.employee_id === filter.employeeId);
+    if (filter?.reviewerId) rows = rows.filter((k) => k.reviewer_id === filter.reviewerId);
+    return rows;
+  }, [data?.kpis, filter?.employeeId, filter?.reviewerId]);
+  return { data: kpis, isLoading, error };
 }
 
 export function useKpi(id: string) {
-  return useQuery({
-    queryKey: ["kpi", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("kpi_definitions").select(KPI_SELECT).eq("id", id).maybeSingle();
-      if (error) throw error;
-      return data as unknown as KpiRow | null;
-    },
-  });
+  const { data, isLoading, error } = useWorkspace();
+  return { data: (data?.kpis ?? []).find((k) => k.id === id) ?? null, isLoading, error };
 }
 
 export function useEmployees() {
-  return useQuery({
-    queryKey: ["employees"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id,name,email,role,department_id,manager_id")
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data, isLoading } = useWorkspace();
+  return { data: data?.employees ?? [], isLoading };
 }
 
 export function useDepartments() {
-  return useQuery({
-    queryKey: ["departments"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("departments").select("id,name").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data, isLoading } = useWorkspace();
+  return { data: data?.departments ?? [], isLoading };
 }
 
 export function usePolicy() {
-  return useQuery({
-    queryKey: ["scoring_policy"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("scoring_policy")
-        .select("*")
-        .is("department_id", null)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data } = useWorkspace();
+  return { data: (data?.policies ?? []).find((p) => p.department_id === null) ?? null };
 }
 
 export function useRubrics() {
-  return useQuery({
-    queryKey: ["rubrics"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rubrics").select("*").order("created_at");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data } = useWorkspace();
+  return { data: data?.rubrics ?? [] };
 }
 
 export function useAuditLog(entityId?: string) {
-  return useQuery({
-    queryKey: ["audit", entityId ?? "all"],
-    queryFn: async () => {
-      let q = supabase.from("audit_log").select("*").order("timestamp", { ascending: false }).limit(500);
-      if (entityId) q = q.eq("entity_id", entityId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data, isLoading } = useWorkspace();
+  const rows = useMemo(() => {
+    const all = data?.audit ?? [];
+    return entityId ? all.filter((a) => a.entity_id === entityId) : all;
+  }, [data?.audit, entityId]);
+  return { data: rows, isLoading };
 }
 
-/** Live refresh: any change to the scoring tables invalidates cached reads. */
+/** Live refresh: any change to the scoring tables invalidates the workspace read. */
 export function useRealtimeKpis() {
   const queryClient = useQueryClient();
   useEffect(() => {
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["workspace"] });
     const channel = supabase
       .channel("kpiflow-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "kpi_definitions" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["kpis"] });
-        queryClient.invalidateQueries({ queryKey: ["kpi"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "score_records" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["kpis"] });
-        queryClient.invalidateQueries({ queryKey: ["kpi"] });
-        queryClient.invalidateQueries({ queryKey: ["audit"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "actual_entries" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["kpis"] });
-        queryClient.invalidateQueries({ queryKey: ["kpi"] });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "kpi_definitions" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "score_records" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "actual_entries" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "audit_log" }, invalidate)
       .subscribe();
     return () => {
       supabase.removeChannel(channel);

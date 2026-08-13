@@ -1,4 +1,6 @@
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { PERSONA_HEADER } from "./demo";
 import { calculateScore, type Milestone, type ScoringPolicy } from "./scoring";
 
 export type EmployeeRow = {
@@ -204,4 +206,102 @@ export async function assertWeightBudget(employeeId: string, weight: number, per
     );
   }
   return allocated + weight;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Demo personas + workspace reads
+   ──────────────────────────────────────────────────────────────── */
+
+export const KPI_SELECT =
+  "*, employees:employee_id(id,name,email,department_id), reviewer:reviewer_id(id,name), approver:approver_id(id,name), score_records(*), actual_entries(*, evidence(*))";
+
+/**
+ * The acting employee for a request. In demo mode an authenticated presenter can
+ * act as one of the seeded demo employees (is_demo = true) via a request header.
+ */
+export async function resolveActor(userId: string, personaId?: string | null): Promise<EmployeeRow> {
+  if (DEMO_MODE && personaId) {
+    const { data } = await supabaseAdmin
+      .from("employees")
+      .select("id,name,email,role,department_id,manager_id")
+      .eq("id", personaId)
+      .eq("is_demo", true)
+      .maybeSingle();
+    if (data) return data as EmployeeRow;
+  }
+  return getEmployee(userId);
+}
+
+export const DEMO_MODE = true;
+
+/** The four canonical demo personas, one per role, in presentation order. */
+const PERSONA_EMAILS = [
+  "employee@anwarkpiflow.demo",
+  "manager@anwarkpiflow.demo",
+  "hradmin@anwarkpiflow.demo",
+  "executive@anwarkpiflow.demo",
+];
+
+export async function listPersonas() {
+  const { data } = await supabaseAdmin
+    .from("employees")
+    .select("id,name,email,role,department_id,manager_id")
+    .in("email", PERSONA_EMAILS);
+  const rows = (data ?? []) as EmployeeRow[];
+  return PERSONA_EMAILS.map((email) => rows.find((r) => r.email === email)).filter(Boolean) as EmployeeRow[];
+}
+
+
+/** Everything the signed-in persona is allowed to see, read server-side in one round trip. */
+export async function loadWorkspace(actor: EmployeeRow) {
+  const [employeesRes, departmentsRes, rubricsRes, policyRes] = await Promise.all([
+    supabaseAdmin.from("employees").select("id,name,email,role,department_id,manager_id,is_demo").order("name"),
+    supabaseAdmin.from("departments").select("id,name,parent_department_id").order("name"),
+    supabaseAdmin.from("rubrics").select("*").order("created_at"),
+    supabaseAdmin.from("scoring_policy").select("*"),
+  ]);
+
+  const employees = employeesRes.data ?? [];
+  const orgWide = ["hr_admin", "executive"].includes(actor.role);
+  const teamIds = employees.filter((e) => e.manager_id === actor.id).map((e) => e.id);
+
+  let kpiQuery = supabaseAdmin.from("kpi_definitions").select(KPI_SELECT).order("created_at", { ascending: false });
+  if (!orgWide) {
+    const visible = Array.from(new Set([actor.id, ...teamIds]));
+    kpiQuery = kpiQuery.or(
+      `employee_id.in.(${visible.join(",")}),reviewer_id.eq.${actor.id},approver_id.eq.${actor.id}`,
+    );
+  }
+  const { data: kpis, error } = await kpiQuery;
+  if (error) throw new Error(error.message);
+
+  let auditQuery = supabaseAdmin
+    .from("audit_log")
+    .select("*")
+    .order("timestamp", { ascending: false })
+    .limit(500);
+  if (!orgWide) {
+    const visible = Array.from(new Set([actor.id, ...teamIds, ...(kpis ?? []).map((k) => k.employee_id)]));
+    auditQuery = auditQuery.in("employee_id", visible);
+  }
+  const { data: audit } = await auditQuery;
+
+  return {
+    me: actor,
+    employees,
+    departments: departmentsRes.data ?? [],
+    rubrics: rubricsRes.data ?? [],
+    policies: policyRes.data ?? [],
+    kpis: kpis ?? [],
+    audit: audit ?? [],
+  };
+}
+
+/** Reads the demo persona the presenter selected, if any. */
+export function personaFromRequest(): string | null {
+  try {
+    return getRequestHeader(PERSONA_HEADER) ?? null;
+  } catch {
+    return null;
+  }
 }
