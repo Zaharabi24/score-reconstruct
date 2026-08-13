@@ -85,6 +85,84 @@ function Dashboard() {
     };
   }, [kpis]);
 
+  const management = useMemo(() => {
+    const rows = kpis ?? [];
+    const evaluatedEmployees = new Set<string>();
+    const pendingEmployees = new Set<string>();
+    let approvalsPending = 0;
+    let adjusted = 0;
+    const finals: number[] = [];
+    const achievements: number[] = [];
+
+    for (const kpi of rows) {
+      const score = latestScore(kpi);
+      if (score?.final_score !== null && score?.final_score !== undefined) {
+        evaluatedEmployees.add(kpi.employee_id);
+        finals.push(Number(score.final_score));
+        if (Number(score.adjustment_delta) !== 0) adjusted += 1;
+      } else {
+        pendingEmployees.add(kpi.employee_id);
+      }
+      if (score?.achievement_percent !== null && score?.achievement_percent !== undefined) {
+        achievements.push(Number(score.achievement_percent));
+      }
+      if (["pending_target_approval", "submitted", "correction_requested"].includes(kpi.status)) {
+        approvalsPending += 1;
+      }
+    }
+    const avg = (list: number[]) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : 0);
+    return {
+      evaluated: evaluatedEmployees.size,
+      pending: [...pendingEmployees].filter((id) => !evaluatedEmployees.has(id)).length + pendingEmployees.size * 0,
+      pendingKpis: rows.length - finals.length,
+      approvalsPending,
+      adjusted,
+      avgScore: avg(finals),
+      avgAchievement: avg(achievements),
+    };
+  }, [kpis]);
+
+  const ranked = useMemo(() => {
+    const withData = deptScores.filter((d) => d.count > 0).sort((a, b) => b.score - a.score);
+    return { top: withData[0] ?? null, bottom: withData.length > 1 ? withData[withData.length - 1] : null };
+  }, [deptScores]);
+
+  const recurringGaps = useMemo(() => {
+    const byKpi = new Map<string, { name: string; employee: string; misses: number; periods: number }>();
+    for (const kpi of kpis ?? []) {
+      const score = latestScore(kpi);
+      const achievement = score?.achievement_percent;
+      if (achievement === null || achievement === undefined) continue;
+      const key = `${kpi.name}::${kpi.employee_id}`;
+      const entry =
+        byKpi.get(key) ?? { name: kpi.name, employee: kpi.employees?.name ?? "—", misses: 0, periods: 0 };
+      entry.periods += 1;
+      if (Number(achievement) < 100) entry.misses += 1;
+      byKpi.set(key, entry);
+    }
+    return [...byKpi.values()]
+      .filter((e) => e.misses >= 2 || (e.periods === 1 && e.misses === 1))
+      .sort((a, b) => b.misses - a.misses)
+      .slice(0, 6);
+  }, [kpis]);
+
+  const trend = useMemo(() => {
+    const buckets = new Map<string, { total: number; count: number }>();
+    for (const kpi of kpis ?? []) {
+      const score = latestScore(kpi);
+      if (score?.final_score === null || score?.final_score === undefined) continue;
+      const d = new Date(kpi.period_start);
+      const label = `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${d.getUTCFullYear()}`;
+      const bucket = buckets.get(label) ?? { total: 0, count: 0 };
+      bucket.total += Number(score.final_score);
+      bucket.count += 1;
+      buckets.set(label, bucket);
+    }
+    return [...buckets.entries()]
+      .map(([label, b]) => ({ label, score: Math.round((b.total / b.count) * 10) / 10 }))
+      .sort((a, b) => a.label.slice(3).localeCompare(b.label.slice(3)) || a.label.localeCompare(b.label));
+  }, [kpis]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -95,11 +173,19 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="KPIs tracked" value={String(integrity.total)} />
-        <Stat label="Scores approved" value={String(integrity.approved)} />
-        <Stat label="Adjustment rate" value={`${integrity.adjustmentRate}%`} />
-        <Stat label="Evidence coverage" value={`${integrity.evidenceCoverage}%`} />
+        <Stat label="Employees evaluated" value={String(management.evaluated)} hint={`${management.pendingKpis} KPIs still pending`} />
+        <Stat label="Average KPI score" value={String(management.avgScore)} hint="Approved final scores" />
+        <Stat label="Average achievement" value={`${management.avgAchievement}%`} hint="Actual vs target" />
+        <Stat label="Approvals pending" value={String(management.approvalsPending)} hint="Targets & submissions" />
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Top department" value={ranked.top?.name ?? "—"} hint={ranked.top ? `${ranked.top.score} weighted score` : "No approved scores yet"} />
+        <Stat label="Needs attention" value={ranked.bottom?.name ?? "—"} hint={ranked.bottom ? `${ranked.bottom.score} weighted score` : "No approved scores yet"} />
+        <Stat label="Scores manually adjusted" value={String(management.adjusted)} hint={`${integrity.adjustmentRate}% of scored KPIs`} />
+        <Stat label="Evidence coverage" value={`${integrity.evidenceCoverage}%`} hint={`${integrity.total} KPIs tracked`} />
+      </div>
+
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="panel p-5">
