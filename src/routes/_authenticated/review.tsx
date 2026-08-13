@@ -81,6 +81,8 @@ function DepartmentWorkspace() {
     [deptKpis, priorPeriod],
   );
 
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const queue = useMemo(
     () =>
       current
@@ -108,8 +110,17 @@ function DepartmentWorkspace() {
             periodStart={periodStart}
             previousPeriodKpis={previous}
             departmentName={departmentName}
+            onFilterStatus={(status) => {
+              setStatusFilter(QUEUE_STATUSES.includes(status) ? status : "all");
+              document.getElementById("kpi-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
           />
-          <RequestQueue queue={queue} meId={me?.id ?? null} />
+          <RequestQueue
+            queue={queue}
+            meId={me?.id ?? null}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+          />
         </>
       )}
     </div>
@@ -118,13 +129,21 @@ function DepartmentWorkspace() {
 
 /* ───────────────────────── Section 2 — submission requests ───────────────────────── */
 
-function RequestQueue({ queue, meId }: { queue: KpiRow[]; meId: string | null }) {
+function RequestQueue({
+  queue,
+  meId,
+  statusFilter,
+  setStatusFilter,
+}: {
+  queue: KpiRow[];
+  meId: string | null;
+  statusFilter: string;
+  setStatusFilter: (status: string) => void;
+}) {
   const [openedIds, setOpenedIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-
   const employees = Array.from(new Map(queue.map((k) => [k.employee_id, k.employees?.name ?? "—"])).entries());
   const types = Array.from(new Set(queue.map((k) => k.kpi_type)));
 
@@ -151,7 +170,7 @@ function RequestQueue({ queue, meId }: { queue: KpiRow[]; meId: string | null })
   };
 
   return (
-    <section className="space-y-4">
+    <section id="kpi-requests" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">KPI submission requests</h2>
