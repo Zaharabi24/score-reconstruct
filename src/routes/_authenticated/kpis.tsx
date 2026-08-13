@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { differenceInCalendarDays } from "date-fns";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useKpis, useRealtimeKpis } from "@/lib/queries";
+import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { WorkflowStepper } from "@/components/WorkflowStepper";
 
@@ -24,11 +25,14 @@ function MyKpis() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl">My KPIs</h1>
-        <p className="text-sm text-muted-foreground">
-          Every score below is computed by the scoring engine and traceable back to its evidence.
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl">My KPIs</h1>
+          <p className="text-sm text-muted-foreground">
+            Every score below is computed by the scoring engine and traceable back to its evidence.
+          </p>
+        </div>
+        <EmployeeTabs />
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}

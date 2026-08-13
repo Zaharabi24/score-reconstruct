@@ -53,7 +53,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const seeded = personas.find((p) => p.role === "employee") ?? personas[0]!;
     setPersonaId(seeded.id);
   }, [personaId, personas]);
-  const screens = ROLE_SCREENS[me?.role ?? "employee"] ?? ROLE_SCREENS["employee"]!;
+  // The employee screens are now tabs inside the Employee section, not sidebar links.
+  const EMPLOYEE_TABS: ScreenPath[] = ["/kpis", "/summary"];
+  const screens = (ROLE_SCREENS[me?.role ?? "employee"] ?? ROLE_SCREENS["employee"]!).filter(
+    (s) => !EMPLOYEE_TABS.includes(s.to),
+  );
 
   const viewAs = async (persona: EmployeeLite) => {
     setPersonaId(persona.id);
@@ -114,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div>
+        <div className={screens.length ? "" : "hidden"}>
           <p className="px-1 text-[11px] uppercase tracking-[0.14em] opacity-60">Screens</p>
           <nav className="mt-2 grid gap-1">
             {screens.map((item) => (

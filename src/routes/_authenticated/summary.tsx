@@ -9,6 +9,7 @@ import { weightedRollUp } from "@/lib/scoring";
 import { getReportPayload } from "@/lib/kpi.functions";
 import { buildKpiReport } from "@/lib/report";
 import { AuditTrail } from "@/components/AuditTrail";
+import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 
@@ -99,6 +100,8 @@ function Summary() {
           <Download className="mr-1 h-4 w-4" /> Download performance record
         </Button>
       </div>
+
+      <EmployeeTabs />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Total KPI score" value={overall === null ? "—" : overall.toFixed(1)} hint="Weighted across approved KPIs" />
