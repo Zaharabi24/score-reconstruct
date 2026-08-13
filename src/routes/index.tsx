@@ -1,24 +1,71 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ShieldCheck, Workflow, FileSearch, LineChart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Anwar KPIFlow — Auditable Variable KPI Scoring" },
+      {
+        name: "description",
+        content:
+          "Replace manual score sheets with Target → Actual → Evidence → Score → Review → Approval. Every score reconstructable, every adjustment justified.",
+      },
+      { property: "og:title", content: "Anwar KPIFlow — Auditable Variable KPI Scoring" },
+      {
+        property: "og:description",
+        content: "Variable KPI and performance management for Anwar Group of Industries.",
+      },
+    ],
+  }),
+  component: Landing,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const PILLARS = [
+  { icon: Workflow, title: "One governed workflow", body: "Target → Actual → Evidence → Score → Review → Approval, enforced server-side." },
+  { icon: ShieldCheck, title: "Server-computed scores", body: "Scores are calculated by the scoring engine, never trusted from a browser." },
+  { icon: FileSearch, title: "Immutable audit trail", body: "Every change, adjustment and denial is written to an append-only log." },
+  { icon: LineChart, title: "Live calibration", body: "Dashboards update in real time as approvals land across the business." },
+];
+
+function Landing() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
+          <Button asChild size="sm">
+            <Link to="/auth">Sign in</Link>
+          </Button>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <p className="num text-xs uppercase tracking-[0.2em] text-primary">Variable KPI & performance management</p>
+        <h1 className="mt-4 max-w-3xl text-4xl leading-tight sm:text-5xl">
+          Every final score, fully reconstructable — without asking a human.
+        </h1>
+        <p className="mt-5 max-w-2xl text-base text-muted-foreground">
+          Anwar KPIFlow replaces the manual score–signature–approval sheet with a governed pipeline: targets are
+          approved, actuals are evidenced and hashed, scores are computed server-side, and every manual adjustment
+          carries a reason code and a justification.
+        </p>
+        <div className="mt-8 flex gap-3">
+          <Button asChild size="lg">
+            <Link to="/auth">Open the workspace</Link>
+          </Button>
+        </div>
+
+        <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PILLARS.map((p) => (
+            <div key={p.title} className="panel p-5">
+              <p.icon className="h-5 w-5 text-primary" />
+              <h2 className="mt-3 text-base font-semibold">{p.title}</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">{p.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
