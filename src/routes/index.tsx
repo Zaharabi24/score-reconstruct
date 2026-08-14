@@ -66,7 +66,7 @@ function Landing() {
         if (error) throw new Error(error.message);
       }
       prefetchWorkspace();
-      await router.navigate({ to: "/kpis" });
+      await router.navigate({ to: "/summary" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the workspace");
     } finally {
@@ -85,7 +85,7 @@ function Landing() {
         if (error) throw new Error(error.message);
       }
       prefetchWorkspace();
-      await router.navigate({ to: "/kpis" });
+      await router.navigate({ to: "/summary" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
     } finally {

@@ -1,17 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Paperclip, FileText } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useAuditLog, useKpis, useRealtimeKpis, type KpiRow } from "@/lib/queries";
 import { weightedRollUp } from "@/lib/scoring";
-import { getReportPayload } from "@/lib/kpi.functions";
+import { getEvidenceLink, getReportPayload } from "@/lib/kpi.functions";
 import { buildKpiReport } from "@/lib/report";
 import { AuditTrail } from "@/components/AuditTrail";
 import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/summary")({
   head: () => ({
@@ -75,7 +77,6 @@ function Summary() {
     return list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null;
   }, [currentRows]);
 
-  const prevByName = new Map(previousRows.map((r) => [r.kpi.name, r]));
 
   const download = async () => {
     try {
@@ -125,32 +126,29 @@ function Summary() {
       </div>
 
       <div className="panel overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead className="bg-surface-alt text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-5 py-2 font-medium">KPI</th>
-              <th className="px-5 py-2 font-medium">Status</th>
-              <th className="px-5 py-2 text-right font-medium">Target</th>
-              <th className="px-5 py-2 text-right font-medium">Actual</th>
-              <th className="px-5 py-2 text-right font-medium">Achievement</th>
-              <th className="px-5 py-2 text-right font-medium">Weight</th>
-              <th className="px-5 py-2 text-right font-medium">Score</th>
-              <th className="px-5 py-2 text-right font-medium">Contribution</th>
-              <th className="px-5 py-2 text-right font-medium">vs previous</th>
+              <th className="whitespace-nowrap px-5 py-2 font-medium">KPI</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Status</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Target</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Actual</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Achievement</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Weight</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Score</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Evidence</th>
+              <th className="whitespace-nowrap px-5 py-2 font-medium">Reporting date</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Approval</th>
             </tr>
           </thead>
           <tbody>
             {currentRows.map((row) => {
               const { kpi, final, achievement, actual, rubricLevel } = row;
-              const prev = prevByName.get(kpi.name);
-              const diff =
-                final !== null && prev?.final !== null && prev?.final !== undefined
-                  ? Number(final) - Number(prev.final)
-                  : null;
+              const entry = latestActual(kpi);
               return (
                 <tr key={kpi.id} className="border-t border-border">
                   <td className="px-5 py-2">{kpi.name}</td>
-                  <td className="px-5 py-2">
+                  <td className="px-5 py-2 text-center">
                     <StatusBadge status={kpi.status} />
                   </td>
                   <td className="num px-5 py-2 text-right">
@@ -166,18 +164,21 @@ function Summary() {
                   <td className="num px-5 py-2 text-right">{achievement === null ? "—" : `${Number(achievement).toFixed(0)}%`}</td>
                   <td className="num px-5 py-2 text-right">{kpi.weight_percent}%</td>
                   <td className="num px-5 py-2 text-right">{final ?? "—"}</td>
-                  <td className="num px-5 py-2 text-right">
-                    {final === null ? "—" : ((Number(final) * Number(kpi.weight_percent)) / 100).toFixed(1)}
+                  <td className="whitespace-nowrap px-5 py-2 text-center">
+                    <EvidenceCell kpi={kpi} />
                   </td>
-                  <td className="num px-5 py-2 text-right">
-                    {diff === null ? "—" : `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}`}
+                  <td className="whitespace-nowrap px-5 py-2">
+                    {entry ? format(new Date(entry.entered_at), "d MMM, HH:mm") : "—"}
+                  </td>
+                  <td className="px-5 py-2 text-center">
+                    <ApprovalPill status={kpi.status} />
                   </td>
                 </tr>
               );
             })}
             {!currentRows.length && (
               <tr>
-                <td colSpan={9} className="px-5 py-6 text-sm text-muted-foreground">
+                <td colSpan={10} className="px-5 py-6 text-sm text-muted-foreground">
                   No KPIs yet.
                 </td>
               </tr>
@@ -201,3 +202,93 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
+
+const APPROVAL: Record<string, { label: string; className: string }> = {
+  submitted: { label: "Pending", className: "bg-attention/10 text-attention border-attention/30" },
+  pending_target_approval: { label: "Pending", className: "bg-attention/10 text-attention border-attention/30" },
+  approved: { label: "Approved", className: "bg-primary text-primary-foreground border-primary" },
+  returned: { label: "Returned", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  correction_requested: { label: "Returned", className: "bg-destructive/10 text-destructive border-destructive/30" },
+};
+
+/** Read-only approval state for the employee view — actions stay in the manager flow. */
+function ApprovalPill({ status }: { status: string }) {
+  const item = APPROVAL[status];
+  if (!item) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.className}`}>
+      {item.label}
+    </span>
+  );
+}
+
+/** Evidence per KPI: attach through the existing submission flow, or preview the attached files. */
+function EvidenceCell({ kpi }: { kpi: KpiRow }) {
+  const evidenceLink = useServerFn(getEvidenceLink);
+  const [open, setOpen] = useState(false);
+  const files = (kpi.actual_entries ?? []).flatMap((entry) =>
+    (entry.evidence ?? []).map((ev) => ({ ...ev, entered_at: entry.entered_at })),
+  );
+
+  const download = async (id: string) => {
+    try {
+      const { url, reason } = await evidenceLink({ data: { evidence_id: id } });
+      if (!url) {
+        toast.error(reason ?? "Could not create a download link");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    } catch {
+      toast.error("Could not create a download link");
+    }
+  };
+
+  if (!files.length) {
+    return (
+      <Link
+        to="/kpi/$id"
+        params={{ id: kpi.id }}
+        hash="submit"
+        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Paperclip className="h-3.5 w-3.5" /> Attach file
+      </Link>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <FileText className="h-3.5 w-3.5" /> {files.length} file{files.length > 1 ? "s" : ""}
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Evidence — {kpi.name}</DialogTitle>
+        </DialogHeader>
+        <ul className="space-y-2">
+          {files.map((ev) => (
+            <li key={ev.id} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm">{ev.file_name ?? "Evidence file"}</p>
+                <p className="text-xs text-muted-foreground">{format(new Date(ev.entered_at), "d MMM, HH:mm")}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => download(ev.id)}>
+                Open
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <Link
+          to="/kpi/$id"
+          params={{ id: kpi.id }}
+          hash="submit"
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Add more evidence in the KPI detail view
+        </Link>
+      </DialogContent>
+    </Dialog>
+  );
+}
