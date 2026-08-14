@@ -1,17 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Paperclip, FileText } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
 import { latestActual, latestScore, useAuditLog, useKpis, useRealtimeKpis, type KpiRow } from "@/lib/queries";
 import { weightedRollUp } from "@/lib/scoring";
-import { getReportPayload } from "@/lib/kpi.functions";
+import { getEvidenceLink, getReportPayload } from "@/lib/kpi.functions";
 import { buildKpiReport } from "@/lib/report";
 import { AuditTrail } from "@/components/AuditTrail";
 import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/summary")({
   head: () => ({
