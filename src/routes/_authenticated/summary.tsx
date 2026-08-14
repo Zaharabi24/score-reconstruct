@@ -125,32 +125,29 @@ function Summary() {
       </div>
 
       <div className="panel overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead className="bg-surface-alt text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-5 py-2 font-medium">KPI</th>
-              <th className="px-5 py-2 font-medium">Status</th>
-              <th className="px-5 py-2 text-right font-medium">Target</th>
-              <th className="px-5 py-2 text-right font-medium">Actual</th>
-              <th className="px-5 py-2 text-right font-medium">Achievement</th>
-              <th className="px-5 py-2 text-right font-medium">Weight</th>
-              <th className="px-5 py-2 text-right font-medium">Score</th>
-              <th className="px-5 py-2 text-right font-medium">Contribution</th>
-              <th className="px-5 py-2 text-right font-medium">vs previous</th>
+              <th className="whitespace-nowrap px-5 py-2 font-medium">KPI</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Status</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Target</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Actual</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Achievement</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Weight</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right font-medium">Score</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Evidence</th>
+              <th className="whitespace-nowrap px-5 py-2 font-medium">Reporting date</th>
+              <th className="whitespace-nowrap px-5 py-2 text-center font-medium">Approval</th>
             </tr>
           </thead>
           <tbody>
             {currentRows.map((row) => {
               const { kpi, final, achievement, actual, rubricLevel } = row;
-              const prev = prevByName.get(kpi.name);
-              const diff =
-                final !== null && prev?.final !== null && prev?.final !== undefined
-                  ? Number(final) - Number(prev.final)
-                  : null;
+              const entry = latestActual(kpi);
               return (
                 <tr key={kpi.id} className="border-t border-border">
                   <td className="px-5 py-2">{kpi.name}</td>
-                  <td className="px-5 py-2">
+                  <td className="px-5 py-2 text-center">
                     <StatusBadge status={kpi.status} />
                   </td>
                   <td className="num px-5 py-2 text-right">
@@ -166,18 +163,21 @@ function Summary() {
                   <td className="num px-5 py-2 text-right">{achievement === null ? "—" : `${Number(achievement).toFixed(0)}%`}</td>
                   <td className="num px-5 py-2 text-right">{kpi.weight_percent}%</td>
                   <td className="num px-5 py-2 text-right">{final ?? "—"}</td>
-                  <td className="num px-5 py-2 text-right">
-                    {final === null ? "—" : ((Number(final) * Number(kpi.weight_percent)) / 100).toFixed(1)}
+                  <td className="whitespace-nowrap px-5 py-2 text-center">
+                    <EvidenceCell kpi={kpi} />
                   </td>
-                  <td className="num px-5 py-2 text-right">
-                    {diff === null ? "—" : `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}`}
+                  <td className="whitespace-nowrap px-5 py-2">
+                    {entry ? format(new Date(entry.entered_at), "d MMM, HH:mm") : "—"}
+                  </td>
+                  <td className="px-5 py-2 text-center">
+                    <ApprovalPill status={kpi.status} />
                   </td>
                 </tr>
               );
             })}
             {!currentRows.length && (
               <tr>
-                <td colSpan={9} className="px-5 py-6 text-sm text-muted-foreground">
+                <td colSpan={10} className="px-5 py-6 text-sm text-muted-foreground">
                   No KPIs yet.
                 </td>
               </tr>
