@@ -77,7 +77,6 @@ function Summary() {
     return list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null;
   }, [currentRows]);
 
-  const prevByName = new Map(previousRows.map((r) => [r.kpi.name, r]));
 
   const download = async () => {
     try {
@@ -203,3 +202,93 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
+
+const APPROVAL: Record<string, { label: string; className: string }> = {
+  submitted: { label: "Pending", className: "bg-attention/10 text-attention border-attention/30" },
+  pending_target_approval: { label: "Pending", className: "bg-attention/10 text-attention border-attention/30" },
+  approved: { label: "Approved", className: "bg-primary text-primary-foreground border-primary" },
+  returned: { label: "Returned", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  correction_requested: { label: "Returned", className: "bg-destructive/10 text-destructive border-destructive/30" },
+};
+
+/** Read-only approval state for the employee view — actions stay in the manager flow. */
+function ApprovalPill({ status }: { status: string }) {
+  const item = APPROVAL[status];
+  if (!item) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.className}`}>
+      {item.label}
+    </span>
+  );
+}
+
+/** Evidence per KPI: attach through the existing submission flow, or preview the attached files. */
+function EvidenceCell({ kpi }: { kpi: KpiRow }) {
+  const evidenceLink = useServerFn(getEvidenceLink);
+  const [open, setOpen] = useState(false);
+  const files = (kpi.actual_entries ?? []).flatMap((entry) =>
+    (entry.evidence ?? []).map((ev) => ({ ...ev, entered_at: entry.entered_at })),
+  );
+
+  const download = async (id: string) => {
+    try {
+      const { url, reason } = await evidenceLink({ data: { evidence_id: id } });
+      if (!url) {
+        toast.error(reason ?? "Could not create a download link");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    } catch {
+      toast.error("Could not create a download link");
+    }
+  };
+
+  if (!files.length) {
+    return (
+      <Link
+        to="/kpi/$id"
+        params={{ id: kpi.id }}
+        hash="submit"
+        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Paperclip className="h-3.5 w-3.5" /> Attach file
+      </Link>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <FileText className="h-3.5 w-3.5" /> {files.length} file{files.length > 1 ? "s" : ""}
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Evidence — {kpi.name}</DialogTitle>
+        </DialogHeader>
+        <ul className="space-y-2">
+          {files.map((ev) => (
+            <li key={ev.id} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm">{ev.file_name ?? "Evidence file"}</p>
+                <p className="text-xs text-muted-foreground">{format(new Date(ev.entered_at), "d MMM, HH:mm")}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => download(ev.id)}>
+                Open
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <Link
+          to="/kpi/$id"
+          params={{ id: kpi.id }}
+          hash="submit"
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Add more evidence in the KPI detail view
+        </Link>
+      </DialogContent>
+    </Dialog>
+  );
+}
