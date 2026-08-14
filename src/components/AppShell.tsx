@@ -37,7 +37,7 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
 
 /** One flat, always-visible menu: each item owns a screen and the role it is viewed as. */
 const MENU: { to: ScreenPath; label: string; role: string }[] = [
-  { to: "/kpis", label: "Employee KPI", role: "employee" },
+  { to: "/summary", label: "Employee KPI", role: "employee" },
   { to: "/review", label: "Department", role: "manager" },
   { to: "/admin", label: "HR/Admin", role: "hr_admin" },
   { to: "/dashboard", label: "Management Dashboard", role: "hr_admin" },
@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="mt-2 grid gap-1">
             {MENU.map((item) => {
               const active =
-                item.to === "/kpis"
+                item.to === "/summary"
                   ? pathname.startsWith("/kpis") || pathname.startsWith("/summary") || pathname.startsWith("/kpi/")
                   : pathname.startsWith(item.to);
               return (
