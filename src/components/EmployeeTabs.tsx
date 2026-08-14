@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 
 const TABS = [
-  { to: "/kpis", label: "My KPIs" },
   { to: "/summary", label: "Performance Summary" },
+  { to: "/kpis", label: "My KPIs" },
 ] as const;
 
 /** Tab switcher between the two employee screens, rendered inside the Employee section. */
