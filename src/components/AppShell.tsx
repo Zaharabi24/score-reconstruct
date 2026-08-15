@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background lg:flex">
       <aside className="flex flex-col gap-6 bg-primary-dark px-4 py-6 text-primary-foreground lg:min-h-screen lg:w-72 lg:shrink-0">
-        <Link to="/kpis" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Activity className="h-4 w-4" />
           </span>
