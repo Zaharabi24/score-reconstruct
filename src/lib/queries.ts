@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from "react";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorkspace } from "@/lib/workspace.functions";
-import { useDemoPersonaId } from "@/lib/demo";
+import { getPersonaId, useDemoPersonaId } from "@/lib/demo";
+
 
 export type KpiRow = Record<string, unknown> & {
   id: string;
