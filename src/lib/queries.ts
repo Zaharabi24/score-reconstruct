@@ -106,18 +106,36 @@ export function latestActual(kpi: { actual_entries?: ActualRow[] }): ActualRow |
   return rows[0] ?? null;
 }
 
+export const WORKSPACE_STALE_TIME = 5 * 60_000;
+
+/** Shared query config so every caller (and every prefetch) hits the same cache entry. */
+export function workspaceQueryOptions(personaId: string | null) {
+  return {
+    queryKey: ["workspace", personaId] as const,
+    queryFn: async () => (await getWorkspace()) as unknown as Workspace,
+    staleTime: WORKSPACE_STALE_TIME,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  };
+}
+
+/**
+ * Starts the workspace read as early as possible (e.g. straight after sign-in) so the
+ * first authenticated screen renders from cache instead of waiting on a round trip.
+ */
+export function prefetchWorkspace(queryClient: QueryClient, personaId: string | null = getPersonaId()) {
+  return queryClient.prefetchQuery(workspaceQueryOptions(personaId)).catch(() => undefined);
+}
+
 /** Single server-side read that respects the active persona's role. */
 export function useWorkspace() {
   const personaId = useDemoPersonaId();
   return useQuery({
-    queryKey: ["workspace", personaId],
-    queryFn: async () => (await getWorkspace()) as unknown as Workspace,
-    staleTime: 5 * 60_000,
-    gcTime: 30 * 60_000,
-    refetchOnWindowFocus: false,
+    ...workspaceQueryOptions(personaId),
     placeholderData: keepPreviousData,
   });
 }
+
 
 export function useKpis(filter?: { employeeId?: string; reviewerId?: string }) {
   const { data, isLoading, error } = useWorkspace();
