@@ -6,10 +6,15 @@ import { DEMO_MODE, listPersonas, loadWorkspace, personaFromRequest, resolveActo
 export const getWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const actor = await resolveActor(context.userId, personaFromRequest());
+    // Personas are fetched alongside the workspace instead of after it.
+    const [actor, personas] = await Promise.all([
+      resolveActor(context.userId, personaFromRequest()),
+      DEMO_MODE ? listPersonas() : Promise.resolve([]),
+    ]);
     const workspace = await loadWorkspace(actor);
-    return { ...workspace, personas: DEMO_MODE ? await listPersonas() : [] };
+    return { ...workspace, personas };
   });
+
 
 /** Re-runs the seed so a demo can be replayed from a clean, fully populated state. */
 export const resetDemoData = createServerFn({ method: "POST" })

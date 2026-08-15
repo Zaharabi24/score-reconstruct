@@ -283,19 +283,38 @@ export async function loadWorkspace(actor: EmployeeRow) {
       `employee_id.in.(${visible.join(",")}),reviewer_id.eq.${actor.id},approver_id.eq.${actor.id}`,
     );
   }
-  const { data: kpis, error } = await kpiQuery;
-  if (error) throw new Error(error.message);
 
+  // The audit read no longer waits on the KPI read: both round trips run together.
   let auditQuery = supabaseAdmin
     .from("audit_log")
     .select("*")
     .order("timestamp", { ascending: false })
     .limit(500);
+  const baseVisible = Array.from(new Set([actor.id, ...teamIds]));
+  if (!orgWide) auditQuery = auditQuery.in("employee_id", baseVisible);
+
+  const [{ data: kpis, error }, { data: auditRows }] = await Promise.all([kpiQuery, auditQuery]);
+  if (error) throw new Error(error.message);
+
+  let audit = auditRows ?? [];
   if (!orgWide) {
-    const visible = Array.from(new Set([actor.id, ...teamIds, ...(kpis ?? []).map((k) => k.employee_id)]));
-    auditQuery = auditQuery.in("employee_id", visible);
+    // KPIs the actor only reviews/approves can belong to people outside the base list.
+    const extra = Array.from(
+      new Set((kpis ?? []).map((k) => k.employee_id).filter((id) => id && !baseVisible.includes(id))),
+    ) as string[];
+    if (extra.length) {
+      const { data: extraAudit } = await supabaseAdmin
+        .from("audit_log")
+        .select("*")
+        .in("employee_id", extra)
+        .order("timestamp", { ascending: false })
+        .limit(500);
+      audit = [...audit, ...(extraAudit ?? [])]
+        .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
+        .slice(0, 500);
+    }
   }
-  const { data: audit } = await auditQuery;
+
 
   return {
     me: actor,

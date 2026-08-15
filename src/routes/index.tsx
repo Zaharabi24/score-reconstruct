@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getPersonaId } from "@/lib/demo";
 import { ShieldCheck, Workflow, FileSearch, LineChart } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureDemoAccount, getWorkspace } from "@/lib/workspace.functions";
+import { ensureDemoAccount } from "@/lib/workspace.functions";
+import { prefetchWorkspace } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -41,17 +41,11 @@ function Landing() {
 
   // Warm the workspace cache so the first authenticated screen paints instantly.
   // The read is auth-only, so skip it entirely until a session exists.
-  const prefetchWorkspace = () => {
+  const warmWorkspace = () => {
     void (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return;
-      await queryClient
-        .prefetchQuery({
-          queryKey: ["workspace", getPersonaId()],
-          queryFn: async () => (await getWorkspace()) as unknown,
-          staleTime: 5 * 60_000,
-        })
-        .catch(() => undefined);
+      await prefetchWorkspace(queryClient);
     })();
   };
 
@@ -65,7 +59,7 @@ function Landing() {
         const { error } = await supabase.auth.signInWithPassword(creds);
         if (error) throw new Error(error.message);
       }
-      prefetchWorkspace();
+      warmWorkspace();
       await router.navigate({ to: "/summary" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the workspace");
@@ -84,7 +78,7 @@ function Landing() {
         const { error } = await supabase.auth.signInWithPassword(creds);
         if (error) throw new Error(error.message);
       }
-      prefetchWorkspace();
+      warmWorkspace();
       await router.navigate({ to: "/summary" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not open the dashboard");
@@ -99,7 +93,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-lg font-bold">Anwar KPIFlow</span>
           <div className="flex items-center gap-2">
-            <Button size="sm" disabled={loading} onMouseEnter={prefetchWorkspace} onClick={enterAsGuest}>
+            <Button size="sm" disabled={loading} onMouseEnter={warmWorkspace} onClick={enterAsGuest}>
               Guest Login
             </Button>
             <Button asChild size="sm">
@@ -120,7 +114,7 @@ function Landing() {
           carries a reason code and a justification.
         </p>
         <div className="mt-8 flex gap-3">
-          <Button size="lg" disabled={loading} onMouseEnter={prefetchWorkspace} onClick={enterDashboard}>
+          <Button size="lg" disabled={loading} onMouseEnter={warmWorkspace} onClick={enterDashboard}>
             Go to the Dashboard
           </Button>
         </div>

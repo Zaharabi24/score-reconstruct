@@ -1,9 +1,11 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ensureDemoAccount } from "@/lib/workspace.functions";
+import { prefetchWorkspace } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,7 @@ const DEPARTMENTS = ["Corporate", "Sales", "Operations", "Human Resources", "Fin
 
 function AuthPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +50,7 @@ function AuthPage() {
       toast.error(error.message);
       return;
     }
+    void prefetchWorkspace(queryClient);
     router.navigate({ to: "/kpis" });
   };
 
@@ -71,6 +75,7 @@ function AuthPage() {
       toast.info("Check your inbox to confirm your email, then sign in.");
       return;
     }
+    void prefetchWorkspace(queryClient);
     router.navigate({ to: "/kpis" });
   };
 
@@ -81,6 +86,7 @@ function AuthPage() {
       const creds = await ensureDemoAccount();
       const { error } = await supabase.auth.signInWithPassword(creds);
       if (error) throw new Error(error.message);
+      void prefetchWorkspace(queryClient);
       router.navigate({ to: "/kpis" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start the demo");
@@ -96,6 +102,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    void prefetchWorkspace(queryClient);
     router.navigate({ to: "/kpis" });
   };
 
