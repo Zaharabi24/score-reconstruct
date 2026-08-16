@@ -39,7 +39,7 @@ export const ROLE_SCREENS: Record<string, Screen[]> = {
 const MENU: { to: ScreenPath; label: string; role: string }[] = [
   { to: "/summary", label: "Employee KPI", role: "employee" },
   { to: "/review", label: "Department", role: "manager" },
-  { to: "/admin", label: "HR/Admin", role: "hr_admin" },
+  { to: "/admin", label: "HR/Admin/ Manager", role: "hr_admin" },
   { to: "/dashboard", label: "Management Dashboard", role: "hr_admin" },
 ];
 
