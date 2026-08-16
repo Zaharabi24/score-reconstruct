@@ -233,3 +233,15 @@ export function useRealtimeKpis() {
     };
   }, [queryClient]);
 }
+
+/** Drops the persisted workspace snapshot (used on sign-out so accounts never share data). */
+export function clearWorkspaceCache() {
+  if (typeof window === "undefined") return;
+  try {
+    Object.keys(window.localStorage)
+      .filter((k) => k.startsWith("kpiflow.workspace."))
+      .forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+}
