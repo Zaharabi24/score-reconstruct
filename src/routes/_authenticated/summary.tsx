@@ -14,6 +14,7 @@ import { EmployeeTabs } from "@/components/EmployeeTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_authenticated/summary")({
   head: () => ({
@@ -143,7 +144,7 @@ function Summary() {
             </colgroup>
             <thead className="bg-surface-alt text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="whitespace-nowrap px-4 py-3 text-left font-medium">KPI</th>
+                <th className="sticky left-0 z-20 whitespace-nowrap bg-surface-alt px-4 py-3 text-left font-medium">KPI</th>
                 <th className="whitespace-nowrap px-4 py-3 text-center font-medium">Status</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Target</th>
                 <th className="whitespace-nowrap px-4 py-3 text-right font-medium">Actual</th>
@@ -163,7 +164,7 @@ function Summary() {
                 const note = entry?.comments?.trim() || latestScore(kpi)?.adjustment_justification?.trim() || null;
                 return (
                   <tr key={kpi.id} className="border-t border-border align-middle">
-                    <td className="px-4 py-4 align-middle">{kpi.name}</td>
+                    <td className="sticky left-0 z-10 bg-card px-4 py-4 align-middle">{kpi.name}</td>
                     <td className="px-4 py-4 text-center align-middle">
                       <StatusBadge status={kpi.status} className="h-6 px-2.5 text-xs leading-none" />
                     </td>
@@ -215,6 +216,32 @@ function Summary() {
   );
 }
 
+/** Read-only note from the employee's submitted actual; truncated with a tooltip + click preview. */
+function NoteCell({ note, kpiName }: { note: string | null; kpiName: string }) {
+  const [open, setOpen] = useState(false);
+  if (!note) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <button className="block w-full truncate rounded-sm text-left text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {note}
+            </button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">{note}</TooltipContent>
+      </Tooltip>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Note — {kpiName}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm leading-relaxed text-foreground">{note}</p>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="panel p-5">
@@ -239,7 +266,7 @@ function ApprovalPill({ status }: { status: string }) {
   const item = APPROVAL[status];
   if (!item) return <span className="text-muted-foreground">—</span>;
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.className}`}>
+    <span className={`inline-flex h-6 items-center rounded-full border px-2.5 text-xs font-medium leading-none ${item.className}`}>
       {item.label}
     </span>
   );
@@ -272,7 +299,7 @@ function EvidenceCell({ kpi }: { kpi: KpiRow }) {
         to="/kpi/$id"
         params={{ id: kpi.id }}
         hash="submit"
-        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-7 w-[104px] items-center justify-center gap-1 rounded-md border border-border px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Paperclip className="h-3.5 w-3.5" /> Attach file
       </Link>
@@ -282,7 +309,7 @@ function EvidenceCell({ kpi }: { kpi: KpiRow }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <button className="inline-flex h-7 w-[104px] items-center justify-center gap-1 rounded-full border border-border px-2.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <FileText className="h-3.5 w-3.5" /> {files.length} file{files.length > 1 ? "s" : ""}
         </button>
       </DialogTrigger>
