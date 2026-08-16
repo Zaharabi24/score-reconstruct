@@ -108,15 +108,47 @@ export function latestActual(kpi: { actual_entries?: ActualRow[] }): ActualRow |
 }
 
 export const WORKSPACE_STALE_TIME = 5 * 60_000;
+const WORKSPACE_CACHE_TTL = 30 * 60_000;
+
+const cacheKey = (personaId: string | null) => `kpiflow.workspace.${personaId ?? "self"}`;
+
+/** Last known workspace, kept in localStorage so the first screen after login paints instantly. */
+function readCachedWorkspace(personaId: string | null): { data: Workspace; at: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey(personaId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { data: Workspace; at: number };
+    if (!parsed?.data || Date.now() - parsed.at > WORKSPACE_CACHE_TTL) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedWorkspace(personaId: string | null, data: Workspace) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(cacheKey(personaId), JSON.stringify({ data, at: Date.now() }));
+  } catch {
+    /* quota or private mode — the cache is only an optimisation */
+  }
+}
 
 /** Shared query config so every caller (and every prefetch) hits the same cache entry. */
 export function workspaceQueryOptions(personaId: string | null) {
+  const cached = readCachedWorkspace(personaId);
   return {
     queryKey: ["workspace", personaId] as const,
-    queryFn: async () => (await getWorkspace()) as unknown as Workspace,
+    queryFn: async () => {
+      const workspace = (await getWorkspace()) as unknown as Workspace;
+      writeCachedWorkspace(personaId, workspace);
+      return workspace;
+    },
     staleTime: WORKSPACE_STALE_TIME,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
+    ...(cached ? { initialData: cached.data, initialDataUpdatedAt: cached.at } : {}),
   };
 }
 
@@ -136,6 +168,7 @@ export function useWorkspace() {
     placeholderData: keepPreviousData,
   });
 }
+
 
 
 export function useKpis(filter?: { employeeId?: string; reviewerId?: string }) {
@@ -199,4 +232,16 @@ export function useRealtimeKpis() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+}
+
+/** Drops the persisted workspace snapshot (used on sign-out so accounts never share data). */
+export function clearWorkspaceCache() {
+  if (typeof window === "undefined") return;
+  try {
+    Object.keys(window.localStorage)
+      .filter((k) => k.startsWith("kpiflow.workspace."))
+      .forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
 }
