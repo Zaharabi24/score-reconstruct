@@ -515,11 +515,44 @@ function BelowTarget({
     return priorPct !== null && priorPct < 95 ? 2 : 1;
   };
 
+  const severity = [
+    { key: "critical", label: "Critical", hint: "Below 50%", dot: "bg-severity-critical", stroke: "stroke-severity-critical",
+      count: rows.filter((r) => r.pct < 50).length },
+    { key: "moderate", label: "Moderate", hint: "50–74%", dot: "bg-severity-moderate", stroke: "stroke-severity-moderate",
+      count: rows.filter((r) => r.pct >= 50 && r.pct < 75).length },
+    { key: "mild", label: "Mild", hint: "75–94%", dot: "bg-severity-mild", stroke: "stroke-severity-mild",
+      count: rows.filter((r) => r.pct >= 75).length },
+  ];
+
   return (
     <div className="panel p-6">
       <p className="field-label">KPIs below target</p>
       {!rows.length && <p className="mt-3 text-sm text-muted-foreground">Every scored KPI is at or above 95%.</p>}
-      {rows.length > 0 && <p className="mt-1.5 text-[11px] text-muted-foreground">Sorted by severity</p>}
+      {rows.length > 0 && (
+        <>
+          <div className="mt-4">
+            <Donut
+              segments={severity.map((b) => ({ key: b.key, value: b.count, strokeClassName: b.stroke, label: b.label }))}
+            >
+              <span className="num text-[34px] font-semibold leading-none">{rows.length}</span>
+              <span className="mt-1 text-[11px] text-muted-foreground">below target</span>
+            </Donut>
+          </div>
+          <ul className="mt-4 space-y-2">
+            {severity.map((b) => (
+              <li key={b.key}>
+                <LegendRow
+                  dotClassName={b.dot}
+                  count={b.count}
+                  label={`${b.label} — ${b.count === 1 ? "1 KPI" : `${b.count} KPIs`}`.replace(/^(.*?) — .*$/, "$1")}
+                  hint={`${b.hint} · ${b.count === 1 ? "1 KPI" : `${b.count} KPIs`}`}
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {rows.length > 0 && <p className="mt-4 text-[11px] text-muted-foreground">Sorted by severity</p>}
       <TooltipProvider delayDuration={150}>
         <ul className="mt-3 space-y-1">
           {shown.map(({ kpi, pct }) => {
