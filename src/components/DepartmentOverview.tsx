@@ -305,13 +305,37 @@ function AverageAchievement({
   hasPrior: boolean;
 }) {
   const band = bandOf(average ?? 0);
+  const BAND_STROKE: Record<string, string> = {
+    critical: "stroke-destructive",
+    below: "stroke-attention",
+    meets: "stroke-primary",
+    exceptional: "stroke-exceptional",
+  };
+  const BAND_SOFT: Record<string, string> = {
+    critical: "bg-destructive/5",
+    below: "bg-attention/5",
+    meets: "bg-primary/5",
+    exceptional: "bg-exceptional/5",
+  };
   return (
-    <div className="panel p-6">
+    <div className={`panel p-6 ${average === null ? "" : BAND_SOFT[band]}`}>
       <p className="field-label">Average achievement</p>
-      <div className="mt-2 flex flex-wrap items-end gap-3">
-        <span className={`num text-[34px] font-semibold leading-none ${average === null ? "" : BAND_TEXT[band]}`}>
-          {average === null ? "—" : `${average.toFixed(1)}%`}
-        </span>
+
+      <div className="mt-4">
+        <Gauge
+          fraction={(average ?? 0) / ACHIEVEMENT_MAX}
+          strokeClassName={BAND_STROKE[band] ?? "stroke-primary"}
+        >
+          <span className={`num text-[34px] font-semibold leading-none ${average === null ? "" : BAND_TEXT[band]}`}>
+            {average === null ? "—" : `${average.toFixed(1)}%`}
+          </span>
+          <span className="mt-1 text-[11px] text-muted-foreground">
+            {average === null ? "No scored KPIs yet" : BAND_LABEL[band]}
+          </span>
+        </Gauge>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-3">
         {hasPrior && delta !== null ? (
           <span
             className={`inline-flex items-center gap-1 text-xs font-medium ${
@@ -331,6 +355,7 @@ function AverageAchievement({
           </span>
         )}
       </div>
+
       <div className="mt-4">
         <div className="h-3 w-full overflow-hidden rounded-full bg-surface-alt" role="img"
           aria-label={`Average achievement ${average === null ? "not available" : `${average.toFixed(1)} percent`}`}>
@@ -419,61 +444,24 @@ function PendingEvaluations({
   segments: PendingSegment[];
   onFilterStatus?: ((status: string) => void) | undefined;
 }) {
-  const pctOf = (count: number) => (total ? (count / total) * 100 : 0);
-  const narrow = segments.filter((s) => pctOf(s.count) < 12 && s.count > 0);
-
   return (
     <div className="panel p-6">
       <p className="field-label">Pending evaluations</p>
-      <p className="num mt-2 text-[34px] font-semibold leading-none">{total}</p>
-      <p className="mt-1.5 text-xs text-muted-foreground">across your department this period</p>
 
-      {/* labels for segments too narrow to hold a number inside the bar */}
-      {narrow.length > 0 && (
-        <div className="relative mt-4 h-5 w-full">
-          {segments.reduce<{ acc: number; nodes: ReactNode[] }>(
-            (state, s) => {
-              const w = pctOf(s.count);
-              if (w > 0 && w < 12) {
-                state.nodes.push(
-                  <span
-                    key={s.key}
-                    className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
-                    style={{ left: `${state.acc + w / 2}%` }}
-                  >
-                    <span className="num text-[11px] text-muted-foreground">{s.count}</span>
-                    <span className={`h-2 w-px ${s.dotClassName}`} />
-                  </span>,
-                );
-              }
-              state.acc += w;
-              return state;
-            },
-            { acc: 0, nodes: [] },
-          ).nodes}
-        </div>
-      )}
-
-      <div
-        className="mt-2 flex h-4 w-full overflow-hidden rounded-full bg-surface-alt"
-        role="img"
-        aria-label={segments.map((s) => `${s.count} ${s.label}`).join(", ") || "No pending evaluations"}
-      >
-        {segments.map((s) => {
-          const w = pctOf(s.count);
-          return (
-            <div
-              key={s.key}
-              className={`flex items-center justify-center ${s.className}`}
-              style={{ width: `${w}%` }}
-              title={`${s.count} ${s.label}`}
-            >
-              {w >= 12 && (
-                <span className="num text-[10px] font-semibold text-background">{s.count}</span>
-              )}
-            </div>
-          );
-        })}
+      <div className="mt-4">
+        <Donut
+          segments={segments.map((s) => ({
+            key: s.key,
+            value: s.count,
+            strokeClassName: s.strokeClassName,
+            label: s.label,
+          }))}
+        >
+          <span className="num text-[34px] font-semibold leading-none">{total}</span>
+          <span className="mt-1 max-w-[110px] text-[11px] leading-snug text-muted-foreground">
+            across your department this period
+          </span>
+        </Donut>
       </div>
 
       <ul className="mt-4 space-y-2">
@@ -482,32 +470,26 @@ function PendingEvaluations({
         )}
         {segments.map((s) => (
           <li key={s.key}>
-            <button
-              type="button"
-              onClick={() => onFilterStatus?.(s.key)}
-              className={`flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${s.tintClassName}`}
-            >
-              <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${s.dotClassName}`} aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px]">
-                    <span className="num font-semibold">{s.count}</span> {s.label}
+            <LegendRow
+              dotClassName={s.dotClassName}
+              count={s.count}
+              label={s.label}
+              hint={s.hint}
+              tintClassName={s.tintClassName}
+              onClick={onFilterStatus ? () => onFilterStatus(s.key) : undefined}
+              badge={
+                s.needsAction ? (
+                  <span className="rounded-full border border-attention/30 bg-attention/10 px-2 py-0.5 text-[10px] font-medium text-attention">
+                    Needs your action
                   </span>
-                  {s.needsAction && (
-                    <span className="rounded-full border border-attention/30 bg-attention/10 px-2 py-0.5 text-[10px] font-medium text-attention">
-                      Needs your action
-                    </span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{s.hint}</span>
-              </span>
-            </button>
+                ) : undefined
+              }
+            />
           </li>
         ))}
       </ul>
     </div>
   );
-
 }
 
 const KPI_TYPE_META: Record<string, { Icon: typeof TrendingUp; label: string }> = {
