@@ -544,7 +544,7 @@ function BelowTarget({
                 <LegendRow
                   dotClassName={b.dot}
                   count={b.count}
-                  label={`${b.label} — ${b.count === 1 ? "1 KPI" : `${b.count} KPIs`}`.replace(/^(.*?) — .*$/, "$1")}
+                  label={b.label}
                   hint={`${b.hint} · ${b.count === 1 ? "1 KPI" : `${b.count} KPIs`}`}
                 />
               </li>
