@@ -21,6 +21,7 @@ const PENDING_STATUS_META: {
   key: string;
   label: string;
   className: string;
+  strokeClassName: string;
   dotClassName: string;
   tintClassName: string;
   hint: string;
@@ -30,6 +31,7 @@ const PENDING_STATUS_META: {
     key: "active",
     label: "awaiting actual",
     className: "bg-muted-foreground/50",
+    strokeClassName: "stroke-muted-foreground/50",
     dotClassName: "bg-muted-foreground/50",
     tintClassName: "hover:bg-muted focus-visible:bg-muted",
     hint: "Employee hasn't submitted a result yet",
@@ -38,6 +40,7 @@ const PENDING_STATUS_META: {
     key: "submitted",
     label: "pending your review",
     className: "bg-attention",
+    strokeClassName: "stroke-attention",
     dotClassName: "bg-attention",
     tintClassName: "hover:bg-attention/10 focus-visible:bg-attention/10",
     hint: "Submitted with evidence, waiting on your decision",
@@ -47,6 +50,7 @@ const PENDING_STATUS_META: {
     key: "correction_requested",
     label: "pending final approval",
     className: "bg-exceptional",
+    strokeClassName: "stroke-exceptional",
     dotClassName: "bg-exceptional",
     tintClassName: "hover:bg-exceptional/10 focus-visible:bg-exceptional/10",
     hint: "Adjusted score awaiting your final sign-off",
@@ -55,6 +59,7 @@ const PENDING_STATUS_META: {
     key: "returned",
     label: "returned",
     className: "bg-destructive",
+    strokeClassName: "stroke-destructive",
     dotClassName: "bg-destructive",
     tintClassName: "hover:bg-destructive/10 focus-visible:bg-destructive/10",
     hint: "Sent back for clarification, waiting on employee",
@@ -63,6 +68,7 @@ const PENDING_STATUS_META: {
     key: "pending_target_approval",
     label: "target pending",
     className: "bg-primary/60",
+    strokeClassName: "stroke-primary/60",
     dotClassName: "bg-primary/60",
     tintClassName: "hover:bg-primary/10 focus-visible:bg-primary/10",
     hint: "Target needs your approval before tracking starts",
@@ -71,12 +77,140 @@ const PENDING_STATUS_META: {
     key: "draft",
     label: "in draft",
     className: "bg-border",
+    strokeClassName: "stroke-border",
     dotClassName: "bg-border",
     tintClassName: "hover:bg-muted focus-visible:bg-muted",
     hint: "Not yet issued to the employee",
   },
 ];
 
+
+
+/* ── Shared chart primitives (one visual language across the three cards) ── */
+
+const CHART_SIZE = 168;
+const CHART_RADIUS = 62;
+const CHART_STROKE = 20;
+const CHART_C = 2 * Math.PI * CHART_RADIUS;
+
+type DonutSegment = { key: string; value: number; strokeClassName: string; label: string };
+
+function Donut({ segments, children }: { segments: DonutSegment[]; children: ReactNode }) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0);
+  let acc = 0;
+  const arcs = segments
+    .filter((seg) => seg.value > 0)
+    .map((seg) => {
+      const frac = total ? seg.value / total : 0;
+      const start = acc;
+      acc += frac;
+      const mid = (start + frac / 2) * 2 * Math.PI - Math.PI / 2;
+      return { seg, frac, start, mid, showLabel: frac >= 0.09 };
+    });
+
+  return (
+    <div className="relative mx-auto" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
+      <svg width={CHART_SIZE} height={CHART_SIZE} viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`} role="img"
+        aria-label={segments.map((s) => `${s.value} ${s.label}`).join(", ")}>
+        <g transform={`rotate(-90 ${CHART_SIZE / 2} ${CHART_SIZE / 2})`} fill="none" strokeWidth={CHART_STROKE}>
+          <circle cx={CHART_SIZE / 2} cy={CHART_SIZE / 2} r={CHART_RADIUS} className="stroke-surface-alt" />
+          {arcs.map(({ seg, frac, start }) => (
+            <circle
+              key={seg.key}
+              cx={CHART_SIZE / 2}
+              cy={CHART_SIZE / 2}
+              r={CHART_RADIUS}
+              className={seg.strokeClassName}
+              strokeDasharray={`${frac * CHART_C} ${CHART_C}`}
+              strokeDashoffset={-start * CHART_C}
+            />
+          ))}
+        </g>
+        {arcs.map(({ seg, mid, showLabel }) =>
+          showLabel ? (
+            <text
+              key={`${seg.key}-label`}
+              x={CHART_SIZE / 2 + Math.cos(mid) * CHART_RADIUS}
+              y={CHART_SIZE / 2 + Math.sin(mid) * CHART_RADIUS}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="num fill-background text-[11px] font-semibold"
+            >
+              {seg.value}
+            </text>
+          ) : null,
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
+    </div>
+  );
+}
+
+function Gauge({ fraction, strokeClassName, children }: { fraction: number; strokeClassName: string; children: ReactNode }) {
+  const f = Math.max(0, Math.min(fraction, 1));
+  return (
+    <div className="relative mx-auto" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
+      <svg width={CHART_SIZE} height={CHART_SIZE} viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`} aria-hidden>
+        <g transform={`rotate(-90 ${CHART_SIZE / 2} ${CHART_SIZE / 2})`} fill="none" strokeWidth={CHART_STROKE}>
+          <circle cx={CHART_SIZE / 2} cy={CHART_SIZE / 2} r={CHART_RADIUS} className="stroke-surface-alt" />
+          <circle
+            cx={CHART_SIZE / 2}
+            cy={CHART_SIZE / 2}
+            r={CHART_RADIUS}
+            className={strokeClassName}
+            strokeLinecap="round"
+            strokeDasharray={`${f * CHART_C} ${CHART_C}`}
+          />
+        </g>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
+    </div>
+  );
+}
+
+function LegendRow({
+  dotClassName,
+  count,
+  label,
+  hint,
+  badge,
+  onClick,
+  tintClassName,
+}: {
+  dotClassName: string;
+  count: ReactNode;
+  label: string;
+  hint?: string;
+  badge?: ReactNode;
+  onClick?: (() => void) | undefined;
+  tintClassName?: string;
+}) {
+  const body = (
+    <>
+      <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-sm ${dotClassName}`} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px]">
+            <span className="num font-semibold">{count}</span> {label}
+          </span>
+          {badge}
+        </span>
+        {hint && <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{hint}</span>}
+      </span>
+    </>
+  );
+  const base = "flex w-full min-h-[38px] items-start gap-2.5 rounded-lg px-2 py-1.5 text-left";
+  if (!onClick) return <div className={base}>{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${base} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tintClassName ?? ""}`}
+    >
+      {body}
+    </button>
+  );
+}
 
 /** Process/admin KPIs are excluded from people-performance lists. */
 function isPeopleKpi(kpi: KpiRow, teamIds: Set<string>) {
@@ -268,6 +402,7 @@ type PendingSegment = {
   key: string;
   label: string;
   className: string;
+  strokeClassName: string;
   dotClassName: string;
   tintClassName: string;
   hint: string;
