@@ -178,7 +178,7 @@ function RequestQueue({
             <span className="num">{rows.length}</span> request{rows.length === 1 ? "" : "s"} waiting — oldest first.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <FilterSelect value={employeeFilter} onChange={setEmployeeFilter} label="All employees"
             options={employees.map(([id, name]) => ({ value: id, label: name }))} />
           <FilterSelect value={typeFilter} onChange={setTypeFilter} label="All KPI types"
@@ -258,7 +258,7 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 w-[170px] justify-between rounded-lg border-primary bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring [&>svg]:text-primary-foreground [&>svg]:opacity-100">
+      <SelectTrigger className="h-9 w-[170px] text-xs">
         <SelectValue placeholder={label} />
       </SelectTrigger>
       <SelectContent>
