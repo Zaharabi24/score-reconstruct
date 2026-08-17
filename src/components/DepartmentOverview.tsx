@@ -21,6 +21,7 @@ const PENDING_STATUS_META: {
   key: string;
   label: string;
   className: string;
+  strokeClassName: string;
   dotClassName: string;
   tintClassName: string;
   hint: string;
@@ -30,6 +31,7 @@ const PENDING_STATUS_META: {
     key: "active",
     label: "awaiting actual",
     className: "bg-muted-foreground/50",
+    strokeClassName: "stroke-muted-foreground/50",
     dotClassName: "bg-muted-foreground/50",
     tintClassName: "hover:bg-muted focus-visible:bg-muted",
     hint: "Employee hasn't submitted a result yet",
@@ -38,6 +40,7 @@ const PENDING_STATUS_META: {
     key: "submitted",
     label: "pending your review",
     className: "bg-attention",
+    strokeClassName: "stroke-attention",
     dotClassName: "bg-attention",
     tintClassName: "hover:bg-attention/10 focus-visible:bg-attention/10",
     hint: "Submitted with evidence, waiting on your decision",
@@ -47,6 +50,7 @@ const PENDING_STATUS_META: {
     key: "correction_requested",
     label: "pending final approval",
     className: "bg-exceptional",
+    strokeClassName: "stroke-exceptional",
     dotClassName: "bg-exceptional",
     tintClassName: "hover:bg-exceptional/10 focus-visible:bg-exceptional/10",
     hint: "Adjusted score awaiting your final sign-off",
@@ -55,6 +59,7 @@ const PENDING_STATUS_META: {
     key: "returned",
     label: "returned",
     className: "bg-destructive",
+    strokeClassName: "stroke-destructive",
     dotClassName: "bg-destructive",
     tintClassName: "hover:bg-destructive/10 focus-visible:bg-destructive/10",
     hint: "Sent back for clarification, waiting on employee",
@@ -63,6 +68,7 @@ const PENDING_STATUS_META: {
     key: "pending_target_approval",
     label: "target pending",
     className: "bg-primary/60",
+    strokeClassName: "stroke-primary/60",
     dotClassName: "bg-primary/60",
     tintClassName: "hover:bg-primary/10 focus-visible:bg-primary/10",
     hint: "Target needs your approval before tracking starts",
@@ -71,12 +77,140 @@ const PENDING_STATUS_META: {
     key: "draft",
     label: "in draft",
     className: "bg-border",
+    strokeClassName: "stroke-border",
     dotClassName: "bg-border",
     tintClassName: "hover:bg-muted focus-visible:bg-muted",
     hint: "Not yet issued to the employee",
   },
 ];
 
+
+
+/* ── Shared chart primitives (one visual language across the three cards) ── */
+
+const CHART_SIZE = 168;
+const CHART_RADIUS = 62;
+const CHART_STROKE = 20;
+const CHART_C = 2 * Math.PI * CHART_RADIUS;
+
+type DonutSegment = { key: string; value: number; strokeClassName: string; label: string };
+
+function Donut({ segments, children }: { segments: DonutSegment[]; children: ReactNode }) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0);
+  let acc = 0;
+  const arcs = segments
+    .filter((seg) => seg.value > 0)
+    .map((seg) => {
+      const frac = total ? seg.value / total : 0;
+      const start = acc;
+      acc += frac;
+      const mid = (start + frac / 2) * 2 * Math.PI - Math.PI / 2;
+      return { seg, frac, start, mid, showLabel: frac >= 0.09 };
+    });
+
+  return (
+    <div className="relative mx-auto" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
+      <svg width={CHART_SIZE} height={CHART_SIZE} viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`} role="img"
+        aria-label={segments.map((s) => `${s.value} ${s.label}`).join(", ")}>
+        <g transform={`rotate(-90 ${CHART_SIZE / 2} ${CHART_SIZE / 2})`} fill="none" strokeWidth={CHART_STROKE}>
+          <circle cx={CHART_SIZE / 2} cy={CHART_SIZE / 2} r={CHART_RADIUS} className="stroke-surface-alt" />
+          {arcs.map(({ seg, frac, start }) => (
+            <circle
+              key={seg.key}
+              cx={CHART_SIZE / 2}
+              cy={CHART_SIZE / 2}
+              r={CHART_RADIUS}
+              className={seg.strokeClassName}
+              strokeDasharray={`${frac * CHART_C} ${CHART_C}`}
+              strokeDashoffset={-start * CHART_C}
+            />
+          ))}
+        </g>
+        {arcs.map(({ seg, mid, showLabel }) =>
+          showLabel ? (
+            <text
+              key={`${seg.key}-label`}
+              x={CHART_SIZE / 2 + Math.cos(mid) * CHART_RADIUS}
+              y={CHART_SIZE / 2 + Math.sin(mid) * CHART_RADIUS}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="num fill-background text-[11px] font-semibold"
+            >
+              {seg.value}
+            </text>
+          ) : null,
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
+    </div>
+  );
+}
+
+function Gauge({ fraction, strokeClassName, children }: { fraction: number; strokeClassName: string; children: ReactNode }) {
+  const f = Math.max(0, Math.min(fraction, 1));
+  return (
+    <div className="relative mx-auto" style={{ width: CHART_SIZE, height: CHART_SIZE }}>
+      <svg width={CHART_SIZE} height={CHART_SIZE} viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`} aria-hidden>
+        <g transform={`rotate(-90 ${CHART_SIZE / 2} ${CHART_SIZE / 2})`} fill="none" strokeWidth={CHART_STROKE}>
+          <circle cx={CHART_SIZE / 2} cy={CHART_SIZE / 2} r={CHART_RADIUS} className="stroke-surface-alt" />
+          <circle
+            cx={CHART_SIZE / 2}
+            cy={CHART_SIZE / 2}
+            r={CHART_RADIUS}
+            className={strokeClassName}
+            strokeLinecap="round"
+            strokeDasharray={`${f * CHART_C} ${CHART_C}`}
+          />
+        </g>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
+    </div>
+  );
+}
+
+function LegendRow({
+  dotClassName,
+  count,
+  label,
+  hint,
+  badge,
+  onClick,
+  tintClassName,
+}: {
+  dotClassName: string;
+  count: ReactNode;
+  label: string;
+  hint?: string;
+  badge?: ReactNode;
+  onClick?: (() => void) | undefined;
+  tintClassName?: string;
+}) {
+  const body = (
+    <>
+      <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-sm ${dotClassName}`} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px]">
+            <span className="num font-semibold">{count}</span> {label}
+          </span>
+          {badge}
+        </span>
+        {hint && <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{hint}</span>}
+      </span>
+    </>
+  );
+  const base = "flex w-full min-h-[38px] items-start gap-2.5 rounded-lg px-2 py-1.5 text-left";
+  if (!onClick) return <div className={base}>{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${base} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tintClassName ?? ""}`}
+    >
+      {body}
+    </button>
+  );
+}
 
 /** Process/admin KPIs are excluded from people-performance lists. */
 function isPeopleKpi(kpi: KpiRow, teamIds: Set<string>) {
@@ -171,13 +305,37 @@ function AverageAchievement({
   hasPrior: boolean;
 }) {
   const band = bandOf(average ?? 0);
+  const BAND_STROKE: Record<string, string> = {
+    critical: "stroke-destructive",
+    below: "stroke-attention",
+    meets: "stroke-primary",
+    exceptional: "stroke-exceptional",
+  };
+  const BAND_SOFT: Record<string, string> = {
+    critical: "bg-destructive/5",
+    below: "bg-attention/5",
+    meets: "bg-primary/5",
+    exceptional: "bg-exceptional/5",
+  };
   return (
-    <div className="panel p-6">
+    <div className={`panel p-6 ${average === null ? "" : BAND_SOFT[band]}`}>
       <p className="field-label">Average achievement</p>
-      <div className="mt-2 flex flex-wrap items-end gap-3">
-        <span className={`num text-[34px] font-semibold leading-none ${average === null ? "" : BAND_TEXT[band]}`}>
-          {average === null ? "—" : `${average.toFixed(1)}%`}
-        </span>
+
+      <div className="mt-4">
+        <Gauge
+          fraction={(average ?? 0) / ACHIEVEMENT_MAX}
+          strokeClassName={BAND_STROKE[band] ?? "stroke-primary"}
+        >
+          <span className={`num text-[34px] font-semibold leading-none ${average === null ? "" : BAND_TEXT[band]}`}>
+            {average === null ? "—" : `${average.toFixed(1)}%`}
+          </span>
+          <span className="mt-1 text-[11px] text-muted-foreground">
+            {average === null ? "No scored KPIs yet" : BAND_LABEL[band]}
+          </span>
+        </Gauge>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-3">
         {hasPrior && delta !== null ? (
           <span
             className={`inline-flex items-center gap-1 text-xs font-medium ${
@@ -197,6 +355,7 @@ function AverageAchievement({
           </span>
         )}
       </div>
+
       <div className="mt-4">
         <div className="h-3 w-full overflow-hidden rounded-full bg-surface-alt" role="img"
           aria-label={`Average achievement ${average === null ? "not available" : `${average.toFixed(1)} percent`}`}>
@@ -268,6 +427,7 @@ type PendingSegment = {
   key: string;
   label: string;
   className: string;
+  strokeClassName: string;
   dotClassName: string;
   tintClassName: string;
   hint: string;
@@ -284,61 +444,24 @@ function PendingEvaluations({
   segments: PendingSegment[];
   onFilterStatus?: ((status: string) => void) | undefined;
 }) {
-  const pctOf = (count: number) => (total ? (count / total) * 100 : 0);
-  const narrow = segments.filter((s) => pctOf(s.count) < 12 && s.count > 0);
-
   return (
     <div className="panel p-6">
       <p className="field-label">Pending evaluations</p>
-      <p className="num mt-2 text-[34px] font-semibold leading-none">{total}</p>
-      <p className="mt-1.5 text-xs text-muted-foreground">across your department this period</p>
 
-      {/* labels for segments too narrow to hold a number inside the bar */}
-      {narrow.length > 0 && (
-        <div className="relative mt-4 h-5 w-full">
-          {segments.reduce<{ acc: number; nodes: ReactNode[] }>(
-            (state, s) => {
-              const w = pctOf(s.count);
-              if (w > 0 && w < 12) {
-                state.nodes.push(
-                  <span
-                    key={s.key}
-                    className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
-                    style={{ left: `${state.acc + w / 2}%` }}
-                  >
-                    <span className="num text-[11px] text-muted-foreground">{s.count}</span>
-                    <span className={`h-2 w-px ${s.dotClassName}`} />
-                  </span>,
-                );
-              }
-              state.acc += w;
-              return state;
-            },
-            { acc: 0, nodes: [] },
-          ).nodes}
-        </div>
-      )}
-
-      <div
-        className="mt-2 flex h-4 w-full overflow-hidden rounded-full bg-surface-alt"
-        role="img"
-        aria-label={segments.map((s) => `${s.count} ${s.label}`).join(", ") || "No pending evaluations"}
-      >
-        {segments.map((s) => {
-          const w = pctOf(s.count);
-          return (
-            <div
-              key={s.key}
-              className={`flex items-center justify-center ${s.className}`}
-              style={{ width: `${w}%` }}
-              title={`${s.count} ${s.label}`}
-            >
-              {w >= 12 && (
-                <span className="num text-[10px] font-semibold text-background">{s.count}</span>
-              )}
-            </div>
-          );
-        })}
+      <div className="mt-4">
+        <Donut
+          segments={segments.map((s) => ({
+            key: s.key,
+            value: s.count,
+            strokeClassName: s.strokeClassName,
+            label: s.label,
+          }))}
+        >
+          <span className="num text-[34px] font-semibold leading-none">{total}</span>
+          <span className="mt-1 max-w-[110px] text-[11px] leading-snug text-muted-foreground">
+            across your department this period
+          </span>
+        </Donut>
       </div>
 
       <ul className="mt-4 space-y-2">
@@ -347,32 +470,26 @@ function PendingEvaluations({
         )}
         {segments.map((s) => (
           <li key={s.key}>
-            <button
-              type="button"
-              onClick={() => onFilterStatus?.(s.key)}
-              className={`flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${s.tintClassName}`}
-            >
-              <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${s.dotClassName}`} aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px]">
-                    <span className="num font-semibold">{s.count}</span> {s.label}
+            <LegendRow
+              dotClassName={s.dotClassName}
+              count={s.count}
+              label={s.label}
+              hint={s.hint}
+              tintClassName={s.tintClassName}
+              onClick={onFilterStatus ? () => onFilterStatus(s.key) : undefined}
+              badge={
+                s.needsAction ? (
+                  <span className="rounded-full border border-attention/30 bg-attention/10 px-2 py-0.5 text-[10px] font-medium text-attention">
+                    Needs your action
                   </span>
-                  {s.needsAction && (
-                    <span className="rounded-full border border-attention/30 bg-attention/10 px-2 py-0.5 text-[10px] font-medium text-attention">
-                      Needs your action
-                    </span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{s.hint}</span>
-              </span>
-            </button>
+                ) : undefined
+              }
+            />
           </li>
         ))}
       </ul>
     </div>
   );
-
 }
 
 const KPI_TYPE_META: Record<string, { Icon: typeof TrendingUp; label: string }> = {
@@ -398,11 +515,44 @@ function BelowTarget({
     return priorPct !== null && priorPct < 95 ? 2 : 1;
   };
 
+  const severity = [
+    { key: "critical", label: "Critical", hint: "Below 50%", dot: "bg-severity-critical", stroke: "stroke-severity-critical",
+      count: rows.filter((r) => r.pct < 50).length },
+    { key: "moderate", label: "Moderate", hint: "50–74%", dot: "bg-severity-moderate", stroke: "stroke-severity-moderate",
+      count: rows.filter((r) => r.pct >= 50 && r.pct < 75).length },
+    { key: "mild", label: "Mild", hint: "75–94%", dot: "bg-severity-mild", stroke: "stroke-severity-mild",
+      count: rows.filter((r) => r.pct >= 75).length },
+  ];
+
   return (
     <div className="panel p-6">
       <p className="field-label">KPIs below target</p>
       {!rows.length && <p className="mt-3 text-sm text-muted-foreground">Every scored KPI is at or above 95%.</p>}
-      {rows.length > 0 && <p className="mt-1.5 text-[11px] text-muted-foreground">Sorted by severity</p>}
+      {rows.length > 0 && (
+        <>
+          <div className="mt-4">
+            <Donut
+              segments={severity.map((b) => ({ key: b.key, value: b.count, strokeClassName: b.stroke, label: b.label }))}
+            >
+              <span className="num text-[34px] font-semibold leading-none">{rows.length}</span>
+              <span className="mt-1 text-[11px] text-muted-foreground">below target</span>
+            </Donut>
+          </div>
+          <ul className="mt-4 space-y-2">
+            {severity.map((b) => (
+              <li key={b.key}>
+                <LegendRow
+                  dotClassName={b.dot}
+                  count={b.count}
+                  label={b.label}
+                  hint={`${b.hint} · ${b.count === 1 ? "1 KPI" : `${b.count} KPIs`}`}
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {rows.length > 0 && <p className="mt-4 text-[11px] text-muted-foreground">Sorted by severity</p>}
       <TooltipProvider delayDuration={150}>
         <ul className="mt-3 space-y-1">
           {shown.map(({ kpi, pct }) => {
