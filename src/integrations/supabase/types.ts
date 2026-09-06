@@ -107,6 +107,24 @@ export type Database = {
         }
         Relationships: []
       }
+      business_units: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
@@ -343,6 +361,197 @@ export type Database = {
             columns: ["rubric_id"]
             isOneToOne: false
             referencedRelation: "rubrics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_employee_entries: {
+        Row: {
+          actual_value: number
+          created_at: string
+          entry_date: string
+          id: string
+          kpi_score: number | null
+          kpi_weight_percent: number
+          member_id: string
+          project_id: string
+          report_note: string | null
+        }
+        Insert: {
+          actual_value?: number
+          created_at?: string
+          entry_date: string
+          id?: string
+          kpi_score?: number | null
+          kpi_weight_percent?: number
+          member_id: string
+          project_id: string
+          report_note?: string | null
+        }
+        Update: {
+          actual_value?: number
+          created_at?: string
+          entry_date?: string
+          id?: string
+          kpi_score?: number | null
+          kpi_weight_percent?: number
+          member_id?: string
+          project_id?: string
+          report_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_employee_entries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_employee_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_evidence: {
+        Row: {
+          file_hash: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          project_employee_entry_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          file_hash: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          project_employee_entry_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          file_hash?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          project_employee_entry_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_evidence_project_employee_entry_id_fkey"
+            columns: ["project_employee_entry_id"]
+            isOneToOne: false
+            referencedRelation: "project_employee_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          created_at: string
+          designation: string | null
+          id: string
+          kpi_weight_percent: number
+          name: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          designation?: string | null
+          id?: string
+          kpi_weight_percent?: number
+          name: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string | null
+          id?: string
+          kpi_weight_percent?: number
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_targets: {
+        Row: {
+          id: string
+          project_id: string
+          target_date: string
+          target_value: number
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          target_date: string
+          target_value: number
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          target_date?: string
+          target_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_targets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          business_unit_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          unit: string
+        }
+        Insert: {
+          business_unit_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          unit?: string
+        }
+        Update: {
+          business_unit_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
         ]
