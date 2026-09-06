@@ -697,6 +697,7 @@ export type Database = {
       reset_demo_data_base: { Args: never; Returns: undefined }
       seed_demo_history: { Args: never; Returns: undefined }
       seed_department_demo: { Args: never; Returns: undefined }
+      seed_project_kpi_demo: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
